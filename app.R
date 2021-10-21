@@ -6,42 +6,55 @@
 #
 #    http://shiny.rstudio.com/
 #
-
 library(shiny)
 
-# Define UI for application that draws a histogram
+datasets <- list("1dig", "2dig", "3dig", "4dig")
+gfl_1dig <- read.csv(file = "GFLcountyEnergyPerFuelYear_1dig.tsv", sep = "\t", header=TRUE)
+gfl_2dig <- read.csv(file = "GFLcountyEnergyPerFuelYear_2dig.tsv", sep = "\t", header=TRUE)
+gfl_3dig <- read.csv(file = "GFLcountyEnergyPerFuelYear_3dig.tsv", sep = "\t", header=TRUE)
+gfl_4dig <- read.csv(file = "GFLcountyEnergyPerFuelYear_4dig.tsv", sep = "\t", header=TRUE)
+
 ui <- fluidPage(
-
+# Define UI for application that draws a histogram
+    
     # Application title
-    titlePanel("Old Faithful Geyser Data"),
-
-    # Sidebar with a slider input for number of bins 
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-           plotOutput("distPlot")
-        )
-    )
+    titlePanel("County / Sector (NAICS)"),
+    
+    hr(),
+    
+    #Inputs to select which data set is displays
+    fluidRow(
+        column(6,
+               selectInput("dataset", "Dataset", datasets, selected = "1dig"))
+    ),
+    
+    hr(),
+    
+    #Where the table is displayed
+    fluidRow(
+        column(12,
+               dataTableOutput("table"))
+    ),
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
+    
+    #When the user selected data set is changed, change the data set being viewed
+    observe({
+        currentDataset <<- input$dataset
+        if (currentDataset == "1dig"){
+            output$table <- renderDataTable(gfl_1dig)
+        }
+        else if (currentDataset == "2dig"){
+            output$table <- renderDataTable(gfl_2dig)
+        }
+        else if (currentDataset == "3dig"){
+            output$table <- renderDataTable(gfl_3dig)
+        }
+        else if (currentDataset == "4dig"){
+            output$table <- renderDataTable(gfl_4dig)
+        }
     })
 }
 
