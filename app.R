@@ -25,7 +25,8 @@ ui <- fluidPage(
     #Inputs to select which data set is displays
     fluidRow(
         column(6,
-               selectInput("dataset", "Dataset", datasets, selected = "1dig"))
+               selectInput("dataset", "Dataset", datasets, selected = "1dig"),
+               downloadButton("downloadData", "Download"))
     ),
     
     hr(),
@@ -34,28 +35,34 @@ ui <- fluidPage(
     fluidRow(
         column(12,
                dataTableOutput("table"))
-    ),
+    )
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
     #When the user selected data set is changed, change the data set being viewed
-    observe({
-        currentDataset <<- input$dataset
-        if (currentDataset == "1dig"){
-            output$table <- renderDataTable(gfl_1dig)
-        }
-        else if (currentDataset == "2dig"){
-            output$table <- renderDataTable(gfl_2dig)
-        }
-        else if (currentDataset == "3dig"){
-            output$table <- renderDataTable(gfl_3dig)
-        }
-        else if (currentDataset == "4dig"){
-            output$table <- renderDataTable(gfl_4dig)
-        }
+    datasetInput <- reactive({
+        switch(input$dataset,
+               "1dig" = gfl_1dig,
+               "2dig" = gfl_2dig,
+               "3dig" = gfl_3dig,
+               "4dig" = gfl_4dig)
     })
+    
+    output$table <- renderDataTable({
+        datasetInput()
+    })
+
+    output$downloadData <- downloadHandler(
+        filename = function() {
+            paste("GFLcountyEnergyPerFuelYear_", input$dataset, ".tsv", sep="")
+        },
+        content = function(file) {
+            #Is this acceptable?  Should it be like write.tsv?  Does that exist?
+            write.table(datasetInput(), file, row.names = FALSE, sep="\t")
+        }
+    )
 }
 
 # Run the application 
