@@ -7,12 +7,32 @@
 #    http://shiny.rstudio.com/
 #
 library(shiny)
+library(RPostgres)
+library(DBI)
+
+my_secrets <- function() {
+    path = "./secrets/secrets.json"
+    if (!file.exists(path)) {
+        stop("Can't find secret file: '", path, "'")
+    }
+    
+    fromJSON(path)
+}
+
+secrets = my_secrets();
+
+# Connect to a specific postgres database i.e. Heroku
+con <- dbConnect(RPostgres::Postgres(),dbname = 'postgres', 
+                 host = 'oasps.student.rit.edu', # i.e. 'ec2-54-83-201-96.compute-1.amazonaws.com'
+                 port = 5432, # or any other port specified by your DBA
+                 user = toString(secrets["username"]),
+                 password = toString(secrets["password"]))
 
 datasets <- list("1dig", "2dig", "3dig", "4dig")
-gfl_1dig <- read.csv(file = "GFLcountyEnergyPerFuelYear_1dig.tsv", sep = "\t", header=TRUE)
-gfl_2dig <- read.csv(file = "GFLcountyEnergyPerFuelYear_2dig.tsv", sep = "\t", header=TRUE)
-gfl_3dig <- read.csv(file = "GFLcountyEnergyPerFuelYear_3dig.tsv", sep = "\t", header=TRUE)
-gfl_4dig <- read.csv(file = "GFLcountyEnergyPerFuelYear_4dig.tsv", sep = "\t", header=TRUE)
+gfl_1dig <- dbReadTable(con, 'gf1_1dig')
+gfl_2dig <- dbReadTable(con, 'gf1_2dig')
+gfl_3dig <- dbReadTable(con, 'gf1_3dig')
+gfl_4dig <- dbReadTable(con, 'gf1_4dig')
 
 ui <- fluidPage(
 # Define UI for application that draws a histogram
