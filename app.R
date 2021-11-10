@@ -9,6 +9,8 @@
 library(shiny)
 library(RPostgres)
 library(DBI)
+library(RJSONIO)
+library(DT)
 
 my_secrets <- function() {
     path = "./secrets/secrets.json"
@@ -54,7 +56,7 @@ ui <- fluidPage(
     #Where the table is displayed
     fluidRow(
         column(12,
-               dataTableOutput("table"))
+               DT::dataTableOutput("table"))
     )
 )
 
@@ -69,19 +71,22 @@ server <- function(input, output) {
                "3dig" = gfl_3dig,
                "4dig" = gfl_4dig)
     })
-    
-    output$table <- renderDataTable({
-        datasetInput()
+
+    refinedDataset <- reactive ({
+        datasetInput()[,-1]
     })
+    
+    output$table <- DT::renderDataTable(refinedDataset(), rownames = FALSE)
 
     output$downloadData <- downloadHandler(
         filename = function() {
             paste("GFLcountyEnergyPerFuelYear_", input$dataset, ".tsv", sep="")
         },
         content = function(file) {
-            #Is this acceptable?  Should it be like write.tsv?  Does that exist?
-            write.table(datasetInput(), file, row.names = FALSE, sep="\t")
+            filtered = input$table_rows_all
+            write.table(refinedDataset()[filtered, , drop = FALSE], file, row.names = FALSE, sep="\t")
         }
+        
     )
 }
 
