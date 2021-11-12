@@ -11,6 +11,8 @@ library(RPostgres)
 library(DBI)
 library(RJSONIO)
 library(DT)
+library(ggplot2)
+library(dplyr)
 
 my_secrets <- function() {
     path = "./secrets/secrets.json"
@@ -55,8 +57,10 @@ ui <- fluidPage(
     
     #Where the table is displayed
     fluidRow(
-        column(12,
-               DT::dataTableOutput("table"))
+        column(width=6,
+               DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0"),
+        column(width=6,
+               plotOutput("plot"))
     )
 )
 
@@ -76,7 +80,7 @@ server <- function(input, output) {
         datasetInput()[,-1]
     })
     
-    output$table <- DT::renderDataTable(refinedDataset(), rownames = FALSE)
+    output$table <- DT::renderDataTable(refinedDataset(), rownames = FALSE, options = list(scrollX = TRUE))
 
     output$downloadData <- downloadHandler(
         filename = function() {
@@ -88,6 +92,19 @@ server <- function(input, output) {
         }
         
     )
+    
+    output$plot <- renderPlot({
+        totalEmissions <- reactive({
+            datasetInput() %>% 
+            group_by(YEAR) %>%
+            summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil, 
+                                Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
+        })
+        print(totalEmissions())
+        ggplot(totalEmissions(), aes(x=factor(YEAR), y=factor(as.integer(sum)))) +
+        geom_bar(stat="identity", width=0.7, fill="red") +
+        xlab("Year") + ylab("Total Emissions (UNITS)")
+    })
 }
 
 # Run the application 
