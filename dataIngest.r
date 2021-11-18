@@ -324,17 +324,7 @@ for (fuel in fuelNames) {
     which(is.na(NYcountyEnergyPerFuelYear_4dig[[fuel]]))] <- 0
 }
 
-# These full and summary datasets are useful to look at with other tools, so save them now. 
-# write_tsv(GFLcountyEnergyEsts, "GFLcountyEnergyEsts.tsv.gz")    # It's huge, so compress it. 
-write_tsv(NYcountyEnergyPerFuelYear_1dig, "NYcountyEnergyPerFuelYear_1dig.tsv")
-write_tsv(NYcountyEnergyPerFuelYear_2dig, "NYcountyEnergyPerFuelYear_2dig.tsv")
-write_tsv(NYcountyEnergyPerFuelYear_3dig, "NYcountyEnergyPerFuelYear_3dig.tsv.gz")
-write_tsv(NYcountyEnergyPerFuelYear_4dig, "NYcountyEnergyPerFuelYear_4dig.tsv.gz")
 
-
-###############
-#END GIVEN CODE
-###############
 
 # Connect to a specific postgres database
 con <- dbConnect(RPostgres::Postgres(),dbname = 'postgres', 
@@ -345,10 +335,10 @@ con <- dbConnect(RPostgres::Postgres(),dbname = 'postgres',
 
 dbListTables(con)
 
-gfl_1dig <- read.csv(file = "NYcountyEnergyPerFuelYear_1dig.tsv", sep = "\t", header=TRUE)
-gfl_2dig <- read.csv(file = "NYcountyEnergyPerFuelYear_2dig.tsv", sep = "\t", header=TRUE)
-gfl_3dig <- read.csv(file = "NYcountyEnergyPerFuelYear_3dig.tsv.gz", sep = "\t", header=TRUE)
-gfl_4dig <- read.csv(file = "NYcountyEnergyPerFuelYear_4dig.tsv.gz", sep = "\t", header=TRUE)
+gfl_1dig <- NYcountyEnergyPerFuelYear_1dig;
+gfl_2dig <- NYcountyEnergyPerFuelYear_2dig;
+gfl_3dig <- NYcountyEnergyPerFuelYear_3dig;
+gfl_4dig <- NYcountyEnergyPerFuelYear_4dig;
 
 
 
