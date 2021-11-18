@@ -335,10 +335,10 @@ con <- dbConnect(RPostgres::Postgres(),dbname = 'postgres',
 
 dbListTables(con)
 
-gfl_1dig <- NYcountyEnergyPerFuelYear_1dig;
-gfl_2dig <- NYcountyEnergyPerFuelYear_2dig;
-gfl_3dig <- NYcountyEnergyPerFuelYear_3dig;
-gfl_4dig <- NYcountyEnergyPerFuelYear_4dig;
+NY_1dig <- NYcountyEnergyPerFuelYear_1dig;
+NY_2dig <- NYcountyEnergyPerFuelYear_2dig;
+NY_3dig <- NYcountyEnergyPerFuelYear_3dig;
+NY_4dig <- NYcountyEnergyPerFuelYear_4dig;
 
 
 
@@ -348,10 +348,10 @@ res <- dbSendQuery(con, "DROP TABLE IF EXISTS gf1_2dig")
 res <- dbSendQuery(con, "DROP TABLE IF EXISTS gf1_3dig")
 res <- dbSendQuery(con, "DROP TABLE IF EXISTS gf1_4dig")
 
-dbWriteTable(con, "gf1_1dig", gfl_1dig, row.names=TRUE, append=FALSE)
-dbWriteTable(con, "gf1_2dig", gfl_2dig, row.names=TRUE, append=FALSE)
-dbWriteTable(con, "gf1_3dig", gfl_3dig, row.names=TRUE, append=FALSE)
-dbWriteTable(con, "gf1_4dig", gfl_4dig, row.names=TRUE, append=FALSE)
+dbWriteTable(con, "gf1_1dig", NY_1dig, row.names=TRUE, append=FALSE)
+dbWriteTable(con, "gf1_2dig", NY_2dig, row.names=TRUE, append=FALSE)
+dbWriteTable(con, "gf1_3dig", NY_3dig, row.names=TRUE, append=FALSE)
+dbWriteTable(con, "gf1_4dig", NY_4dig, row.names=TRUE, append=FALSE)
 
 
 dbFetch(res)
