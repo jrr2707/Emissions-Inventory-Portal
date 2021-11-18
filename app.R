@@ -9,6 +9,7 @@
 library(shiny)
 library(RPostgres)
 library(DBI)
+library(jsonlite)
 
 my_secrets <- function() {
     path = "./secrets/secrets.json"
