@@ -40,3 +40,6 @@ vignettes/*.pdf
 
 #secrets
 /secrets/secrets.json
+
+#downloads
+/downloads/*

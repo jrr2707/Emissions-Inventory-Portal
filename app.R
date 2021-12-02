@@ -13,6 +13,7 @@ library(RJSONIO)
 library(DT)
 library(ggplot2)
 library(dplyr)
+library(jsonlite)
 
 my_secrets <- function() {
     path = "./secrets/secrets.json"
