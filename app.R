@@ -13,6 +13,7 @@ library(RJSONIO)
 library(DT)
 library(ggplot2)
 library(dplyr)
+library(jsonlite)
 
 my_secrets <- function() {
     path = "./secrets/secrets.json"
@@ -49,8 +50,15 @@ ui <- fluidPage(
     #Inputs to select which data set is displays
     fluidRow(
         column(6,
-               selectInput("dataset", "Dataset", datasets, selected = "1dig"),
-               downloadButton("downloadData", "Download"))
+               selectInput("dataset", "Dataset", datasets, selected = "1dig"))
+    ),
+    
+    # Download Buttons
+    fluidRow(
+        column(6,
+               downloadButton("downloadData", "Download Data")),
+        column(6,
+               downloadButton("downloadVis", "Download Visual"))
     ),
     
     hr(),
@@ -60,7 +68,7 @@ ui <- fluidPage(
         column(width=6,
                DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0"),
         column(width=6,
-               plotOutput("plot"))
+               plotOutput("myPlot"))
     )
 )
 
@@ -93,17 +101,30 @@ server <- function(input, output) {
         
     )
     
-    output$plot <- renderPlot({
-        totalEmissions <- reactive({
-            datasetInput() %>% 
-            group_by(YEAR) %>%
-            summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil, 
-                                Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
-        })
-        print(totalEmissions())
-        ggplot(totalEmissions(), aes(x=factor(YEAR), y=factor(as.integer(sum)))) +
+    output$downloadVis <- downloadHandler(
+      filename = function() {
+        paste("GFLcountyEnergyPerFuelYear_", input$dataset, ".png", sep="")
+      },
+      content = function(file) {
+        ggsave(file, plot = gflPlot(), device = "png")
+      }
+    )
+    
+    totalEmissions <- reactive({
+      datasetInput() %>% 
+        group_by(YEAR) %>%
+        summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil, 
+                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
+    })
+    
+    gflPlot <- reactive({
+      plot <- ggplot(totalEmissions(), aes(x=factor(YEAR), y=factor(as.integer(sum)))) +
         geom_bar(stat="identity", width=0.7, fill="red") +
         xlab("Year") + ylab("Total Emissions (UNITS)")
+    })
+    
+    output$myPlot <- renderPlot({
+        print(gflPlot())
     })
 }
 
