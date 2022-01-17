@@ -88,13 +88,16 @@ server <- function(input, output) {
         datasetInput()[,-1]
     })
     
-    output$table <- DT::renderDataTable(refinedDataset(), rownames = FALSE, options = list(scrollX = TRUE))
+    output$table <- DT::renderDataTable(refinedDataset(), filter = "top", rownames = FALSE, 
+                                        options = list(scrollX = TRUE, dom = 'ltp')) # Show the (l)ength input, (t)able, and
+                                                                                     # (p)agination
 
     output$downloadData <- downloadHandler(
         filename = function() {
             paste("GFLcountyEnergyPerFuelYear_", input$dataset, ".tsv", sep="")
         },
         content = function(file) {
+            # Filtering the data allows us to download the currently shown data
             filtered = input$table_rows_all
             write.table(refinedDataset()[filtered, , drop = FALSE], file, row.names = FALSE, sep="\t")
         }
@@ -111,7 +114,9 @@ server <- function(input, output) {
     )
     
     totalEmissions <- reactive({
-      datasetInput() %>% 
+      # Filtering the data allows the visualization to be adaptive to the currently shown data
+      filtered = input$table_rows_all
+      refinedDataset()[filtered, , drop = FALSE] %>% 
         group_by(YEAR) %>%
         summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil, 
                             Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
