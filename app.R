@@ -43,7 +43,9 @@ ui <- fluidPage(
 # Define UI for application that draws a histogram
     
     # Application title
-    titlePanel(title = div(img(src="Logo_Flat.png", height = 100, width = 400), "Emissions Inventory Portal")),
+    titlePanel(title = div(img(src="Logo_Flat.png", height = 100, width = 400), "Emissions Inventory Portal"),
+               windowTitle = "Orebed Analytics - Emissions Inventory Portal"
+    ),
     
     tagList(tags$head(tags$style(type = 'text/css', '.navbar-brand{display:none;}')),
             
