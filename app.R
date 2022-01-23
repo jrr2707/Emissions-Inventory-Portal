@@ -43,32 +43,105 @@ ui <- fluidPage(
 # Define UI for application that draws a histogram
     
     # Application title
-    titlePanel("County / Sector (NAICS)"),
+    titlePanel(title = div(img(src="Logo_Flat.png", height = 100, width = 400), "Emissions Inventory Portal")),
     
-    hr(),
-    
-    #Inputs to select which data set is displays
-    fluidRow(
-        column(6,
-               selectInput("dataset", "Dataset", datasets, selected = "1dig"))
-    ),
-    
-    # Download Buttons
-    fluidRow(
-        column(6,
-               downloadButton("downloadData", "Download Data")),
-        column(6,
-               downloadButton("downloadVis", "Download Visual"))
-    ),
-    
-    hr(),
-    
-    #Where the table is displayed
-    fluidRow(
-        column(width=6,
-               DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0"),
-        column(width=6,
-               plotOutput("myPlot"))
+    tagList(tags$head(tags$style(type = 'text/css', '.navbar-brand{display:none;}')),
+            
+        navbarPage("",
+              
+            tabPanel(icon("home"),
+                tagList(tags$h1(
+                    "Welcome to the Orebed Analytics Emissions Inventory Portal"
+                )),
+                
+                tagList(tags$h3(
+                    "Overview:"
+                )),
+                fluidRow(
+                    column(6,
+                        tagList(tags$h4(
+                            "An emissions inventory is an estimate of the total quantity of specific substances of interest emitted ",
+                            "by or due to human activities within a specified time period and geographic location. Emissions inventories ",
+                            "are frequently prepared for toxic pollutants with direct adverse health effects (also known ",
+                            "as \"criteria pollutants\" or \"schedule pollutants\"); the concern of the present paper is with greenhouse ",
+                            "gas emissions inventories estimating the quantities of greenhouse gases emitted by or due to ",
+                            "human activities.", br(), br(),
+                            
+                            "The global economy generates greenhouse gas emissions that are causing the global climate to ",
+                            "warm and change at an alarming rate. However, we're looking at emissions only in the United ",
+                            "States and at a smaller scale: state, region, county, or municipality, since that is often the scale at ",
+                            "which policy interventions can be implemented most effectively."
+                        ))
+                    ),
+                    
+                    column(6,
+                           div(img(src="HomePageData1.png", height = 600, width = 600))#,
+                           #br(),
+                           #div(img(src="HomePageData2.png", height = 200, width = 200))
+                    )
+                )
+            ),
+              
+            tabPanel("NAICS",
+                #Inputs to select which data set is displays
+                fluidRow(
+                  
+                    column(6, selectInput("dataset", "Dataset", datasets, selected = "1dig"))),
+                       
+                    # Download Buttons
+                    fluidRow(
+                        column(6, downloadButton("downloadData", "Download Data")),
+                        
+                        column(6, downloadButton("downloadVis", "Download Visual"))
+                ),
+                       
+                hr(),
+                       
+                #Where the table is displayed
+                fluidRow(
+                    column(width=6,
+                        DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0"),
+                        
+                    column(width=6, plotOutput("myPlot"))
+                )
+            ),
+            
+            tabPanel("eGrid",
+                "eGrid Data (blank for now)"
+            ),
+            
+            tabPanel("...",
+                     "(blank for now)"
+            ),
+            
+            tabPanel("About",
+                tagList(tags$h1(
+                    "About Us"
+                )),
+                
+                tagList(tags$h3(
+                    "Team:"
+                )),
+                tagList(tags$h4(
+                    "Olivia Dolan - Developer", br(),
+                    "Eric Koski - Developer/Sponsor", br(),
+                    "Keith Lynd - Developer", br(),
+                    "EJ Martino - Developer", br(),
+                    "Thomas Maszerowski - Coach", br(),
+                    "Joey Rumfelt - Developer"
+                )),
+                
+                br(),
+                
+                tagList(tags$h3(
+                  "Special Thanks:"
+                )),
+                tagList(tags$h4(
+                  "Rochester Institute of Technology", br(),
+                  "Viewers Like You"
+                ))
+            )
+        )
     )
 )
 
