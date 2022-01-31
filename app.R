@@ -33,7 +33,7 @@ con <- dbConnect(RPostgres::Postgres(),dbname = 'postgres',
                  user = toString(secrets["username"]),
                  password = toString(secrets["password"]))
 
-datasets <- list("1dig", "2dig", "3dig", "4dig")
+datasets <- list("1-digit", "2-digit", "3-digit", "4-digit")
 gfl_1dig <- dbReadTable(con, 'gf1_1dig')
 gfl_2dig <- dbReadTable(con, 'gf1_2dig')
 gfl_3dig <- dbReadTable(con, 'gf1_3dig')
@@ -84,11 +84,11 @@ ui <- fluidPage(
                 )
             ),
               
-            tabPanel("NAICS",
+            tabPanel("Industry",
                 #Inputs to select which data set is displays
                 fluidRow(
                   
-                    column(6, selectInput("dataset", "Dataset", datasets, selected = "1dig"))),
+                    column(6, selectInput("dataset", "NAICS Code Length", datasets, selected = "1-digit"))),
                        
                     # Download Buttons
                     fluidRow(
@@ -102,13 +102,40 @@ ui <- fluidPage(
                 #Where the table is displayed
                 fluidRow(
                     column(width=6,
-                        DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0"),
+                        DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0;"
+                    ),
                         
                     column(width=6, plotOutput("myPlot"))
                 )
             ),
             
-            tabPanel("eGrid",
+            # TODO: This is the same as above, we need to change it
+            tabPanel("Agriculture",
+                     "(blank for now)"
+                     #Inputs to select which data set is displays
+                     # fluidRow(
+                     #   
+                     #   column(6, selectInput("dataset", "NAICS Code Length", datasets, selected = "1-digit"))),
+                     # 
+                     # # Download Buttons
+                     # fluidRow(
+                     #   column(6, downloadButton("downloadData", "Download Data")),
+                     #   
+                     #   column(6, downloadButton("downloadVis", "Download Visual"))
+                     # ),
+                     # 
+                     # hr(),
+                     # 
+                     # #Where the table is displayed
+                     # fluidRow(
+                     #   column(width=6,
+                     #          DT::dataTableOutput("table"), style = "height: 500px; overflow-y: scroll; border-right: 2px solid #F0F0F0"),
+                     #   
+                     #   column(width=6, plotOutput("myPlot"))
+                     # )
+            ),
+            
+            tabPanel("Electricity Generation",
                 "eGrid Data (blank for now)"
             ),
             
@@ -153,19 +180,21 @@ server <- function(input, output) {
     #When the user selected data set is changed, change the data set being viewed
     datasetInput <- reactive({
         switch(input$dataset,
-               "1dig" = gfl_1dig,
-               "2dig" = gfl_2dig,
-               "3dig" = gfl_3dig,
-               "4dig" = gfl_4dig)
+               "1-digit" = gfl_1dig,
+               "2-digit" = gfl_2dig,
+               "3-digit" = gfl_3dig,
+               "4-digit" = gfl_4dig)
     })
 
     refinedDataset <- reactive ({
         datasetInput()[,-1]
     })
     
-    output$table <- DT::renderDataTable(refinedDataset(), filter = "top", rownames = FALSE, 
-                                        options = list(scrollX = TRUE, dom = 'ltp')) # Show the (l)ength input, (t)able, and
-                                                                                     # (p)agination
+    output$table <- DT::renderDataTable(refinedDataset(), filter = "top", rownames = FALSE,
+                                        options = list(scrollX = TRUE, scrollY = '400px', dom = '<"top"l>t<"bottom"p>'), # Show the (l)ength input, (t)able, and (p)agination
+                                        colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL", 
+                                                   "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze"),
+    )
 
     output$downloadData <- downloadHandler(
         filename = function() {
