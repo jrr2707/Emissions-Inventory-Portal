@@ -86,16 +86,31 @@ ui <- fluidPage(
               
             tabPanel("Industry",
                 #Inputs to select which data set is displays
+                
+                 fluidRow(column(12, tagList(tags$h4("About this data", br()),
+                                             tags$h5("The North American Industry Classification System (NAICS) is the 
+                                                     standard used by Federal statistical agencies in classifying business 
+                                                     establishments for the purpose of collecting, analyzing, and publishing 
+                                                     statistical data related to the U.S. business economy.")
+                                     )
+                          )
+                 ),
+                
+                 hr(),
+                
                 fluidRow(
                   
-                    column(6, selectInput("dataset", "NAICS Code Length", datasets, selected = "1-digit"))),
+                    column(6, selectInput("dataset", "NAICS Code Length", datasets, selected = "1-digit")),
+                    
+                ),
+                  
                        
                     # Download Buttons
                     fluidRow(
                         column(6, downloadButton("downloadData", "Download Data")),
                         
                         column(6, downloadButton("downloadVis", "Download Visual"))
-                ),
+                    ),
                        
                 hr(),
                        
@@ -106,7 +121,9 @@ ui <- fluidPage(
                     ),
                         
                     column(width=6, plotOutput("myPlot"))
-                )
+                ),
+                
+                hr()
             ),
             
             # TODO: This is the same as above, we need to change it
