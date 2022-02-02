@@ -51,7 +51,7 @@ ui <- fluidPage(
             
         navbarPage("",
               
-            tabPanel(icon("home"),
+            tabPanel(span(icon("home"), title="Home Page"),
                 tagList(tags$h1(
                     "Welcome to the Orebed Analytics Emissions Inventory Portal"
                 )),
@@ -84,33 +84,24 @@ ui <- fluidPage(
                 )
             ),
               
-            tabPanel("Industry",
-                #Inputs to select which data set is displays
+            tabPanel(span("Industry", title="NAICS Industry Emissions Data"),
+                #Inputs to select which data set is displays, download buttons for plot and data, and a description of the sector
                 
-                 fluidRow(column(12, tagList(tags$h4("About this data", br()),
-                                             tags$h5("The North American Industry Classification System (NAICS) is the 
+                fluidRow(
+                    column(3, selectInput("dataset", "NAICS Code Length", datasets, selected = "1-digit"), 
+                           downloadButton("downloadData", "Download Data"), 
+                           downloadButton("DownloadVis", "Download Plot"),
+                           style = "border-right: 2px solid #F0F0F0;"),
+                    column(9, tagList(tags$h4("About These Data", br()),
+                                       tags$h5("The North American Industry Classification System (NAICS) is the 
                                                      standard used by Federal statistical agencies in classifying business 
                                                      establishments for the purpose of collecting, analyzing, and publishing 
                                                      statistical data related to the U.S. business economy.")
-                                     )
-                          )
-                 ),
-                
-                 hr(),
-                
-                fluidRow(
-                  
-                    column(6, selectInput("dataset", "NAICS Code Length", datasets, selected = "1-digit")),
+                    )
+                    ),
                     
                 ),
-                  
-                       
-                    # Download Buttons
-                    fluidRow(
-                        column(6, downloadButton("downloadData", "Download Data")),
-                        
-                        column(6, downloadButton("downloadVis", "Download Visual"))
-                    ),
+                
                        
                 hr(),
                        
@@ -127,7 +118,7 @@ ui <- fluidPage(
             ),
             
             # TODO: This is the same as above, we need to change it
-            tabPanel("Agriculture",
+            tabPanel(span("Agriculture", title="NAICS Agriculture Emissions Data"),
                      "(blank for now)"
                      #Inputs to select which data set is displays
                      # fluidRow(
@@ -152,11 +143,11 @@ ui <- fluidPage(
                      # )
             ),
             
-            tabPanel("Electricity Generation",
+            tabPanel(span("Electricity Generation", title="Egrid Electricity Generation Emissions Data"),
                 "eGrid Data (blank for now)"
             ),
             
-            tabPanel("...",
+            tabPanel(span("...",title="..."),
                      "(blank for now)"
             ),
             
@@ -204,11 +195,13 @@ server <- function(input, output) {
     })
 
     refinedDataset <- reactive ({
-        datasetInput()[,-1]
+        datasetInput()[,-1] %>%
+          mutate(across(is.numeric, round, digits=2))
     })
     
-    output$table <- DT::renderDataTable(refinedDataset(), filter = "top", rownames = FALSE,
-                                        options = list(scrollX = TRUE, scrollY = '400px', dom = '<"top"l>t<"bottom"p>'), # Show the (l)ength input, (t)able, and (p)agination
+    output$table <- DT::renderDataTable(refinedDataset(), rownames = FALSE, #filter = "top", 
+                                        extensions = "FixedColumns",
+                                        options = list(scrollX = TRUE, scrollY = '400px', fixedColumns = list(leftColumns = 4), paging = FALSE), # Show the (l)ength input, (t)able, and (p)agination
                                         colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL", 
                                                    "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze"),
     )
