@@ -12,8 +12,10 @@ library(DBI)
 library(RJSONIO)
 library(DT)
 library(ggplot2)
+library(plyr)
 library(dplyr)
 library(jsonlite)
+
 
 my_secrets <- function() {
     path = "./secrets/secrets.json"
@@ -77,9 +79,7 @@ ui <- fluidPage(
                     ),
                     
                     column(6,
-                           div(img(src="HomePageData1.png", height = 600, width = 600))#,
-                           #br(),
-                           #div(img(src="HomePageData2.png", height = 200, width = 200))
+                           div(img(src="HomePageData1.png", height = 600, width = 600))
                     )
                 )
             ),
@@ -104,14 +104,17 @@ ui <- fluidPage(
                 
                        
                 hr(),
-                       
-                #Where the table is displayed
+                
+                #Display Plot
                 fluidRow(
-                    column(width=6,
-                        DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0;"
-                    ),
-                        
-                    column(width=6, plotOutput("myPlot"))
+                  column(width=12, plotOutput("myPlot"))
+                ),
+                
+                hr(),
+                
+                #Display Table
+                fluidRow(
+                  column(width=12, DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0;")
                 ),
                 
                 hr()
@@ -199,9 +202,9 @@ server <- function(input, output) {
           mutate(across(is.numeric, round, digits=2))
     })
     
-    output$table <- DT::renderDataTable(refinedDataset(), rownames = FALSE, #filter = "top", 
-                                        extensions = "FixedColumns",
-                                        options = list(scrollX = TRUE, scrollY = '400px', fixedColumns = list(leftColumns = 4), paging = FALSE), # Show the (l)ength input, (t)able, and (p)agination
+    output$table <- DT::renderDataTable(refinedDataset(), rownames = FALSE, filter = "top", 
+                                        extensions = list("Scroller" = NULL),
+                                        options = list(scrollX = TRUE, scrollY = '400px', scroller = TRUE, dom = "lt"), # Show the (l)ength input and (t)able
                                         colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL", 
                                                    "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze"),
     )
@@ -237,9 +240,34 @@ server <- function(input, output) {
     })
     
     gflPlot <- reactive({
-      plot <- ggplot(totalEmissions(), aes(x=factor(YEAR), y=factor(as.integer(sum)))) +
-        geom_bar(stat="identity", width=0.7, fill="red") +
-        xlab("Year") + ylab("Total Emissions (UNITS)")
+      
+      vals = totalEmissions()[2]
+      if (!empty(vals)){
+        min_val = min(vals)
+        min_exponent = floor(log10(min_val)-1)
+        final_min = round_any(min_val, 10^min_exponent, f = floor)
+        
+        max_val = max(vals)
+        max_exponent = floor(log10(max_val)-1)
+        final_max = round_any(max_val, 10^max_exponent, f = ceiling)
+        
+        sequence = (final_max - final_min) / 10
+      } else {
+        final_min = 0
+        final_max = 0
+        sequence = 0
+      }
+      
+      plot <- ggplot(totalEmissions(), aes(x=YEAR, y=as.integer(sum))) +
+        geom_col(width = 0.4, fill="red") +
+        coord_cartesian(ylim = c(final_min, final_max + sequence)) +
+        scale_y_continuous(breaks = seq(final_min, final_max + sequence, by = sequence)) + 
+        scale_x_continuous(breaks = seq(2010, 2100, by = 1)) + 
+        xlab("Year") + ylab("Total Emissions (UNITS)") + 
+        theme(
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()
+          )
     })
     
     output$myPlot <- renderPlot({
