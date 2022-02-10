@@ -88,15 +88,18 @@ ui <- fluidPage(
                 #Inputs to select which data set is displays, download buttons for plot and data, and a description of the sector
                 
                 fluidRow(
-                    column(3, selectInput("dataset", "NAICS Code Length", datasets, selected = "1-digit"), 
-                           downloadButton("downloadData", "Download Data"), 
-                           downloadButton("DownloadVis", "Download Plot"),
+                    column(width=3, selectInput("ind_dataset", "NAICS Code Length", datasets, selected = "1-digit"), 
+                           downloadButton("ind_downloadData", "Download Data"), 
+                           downloadButton("ind_DownloadVis", "Download Plot"),
                            style = "border-right: 2px solid #F0F0F0;"),
-                    column(9, tagList(tags$h4("About These Data", br()),
-                                       tags$h5("The North American Industry Classification System (NAICS) is the 
-                                                     standard used by Federal statistical agencies in classifying business 
-                                                     establishments for the purpose of collecting, analyzing, and publishing 
-                                                     statistical data related to the U.S. business economy.")
+                    column(width=9, tagList(tags$h4("About These Data", br()),
+                                       tags$h5("The North American Industry Classification System (NAICS) is the standard numeric coding system 
+                                               developed by the U.S. Office of Management and Budget, and used by Federal statistical agencies 
+                                               in classifying business establishments for the purpose of collecting, analyzing, 
+                                               and publishing statistical data related to the U.S. business economy. 
+                                               A handful of minor alterations 
+                                               have been made in the NAICS categories shown here, 
+                                               for clarity in presenting energy and emissions data..")
                     )
                     ),
                     
@@ -107,43 +110,55 @@ ui <- fluidPage(
                 
                 #Display Plot
                 fluidRow(
-                  column(width=12, plotOutput("myPlot"))
+                  column(width=12, plotOutput("ind_Plot"))
                 ),
                 
                 hr(),
                 
                 #Display Table
                 fluidRow(
-                  column(width=12, DT::dataTableOutput("table"), style = "border-right: 2px solid #F0F0F0;")
+                  column(width=12, DT::dataTableOutput("ind_table"))
                 ),
                 
                 hr()
             ),
             
-            # TODO: This is the same as above, we need to change it
+            #Agriculture Page
             tabPanel(span("Agriculture", title="NAICS Agriculture Emissions Data"),
-                     "(blank for now)"
-                     #Inputs to select which data set is displays
-                     # fluidRow(
-                     #   
-                     #   column(6, selectInput("dataset", "NAICS Code Length", datasets, selected = "1-digit"))),
-                     # 
-                     # # Download Buttons
-                     # fluidRow(
-                     #   column(6, downloadButton("downloadData", "Download Data")),
-                     #   
-                     #   column(6, downloadButton("downloadVis", "Download Visual"))
-                     # ),
-                     # 
-                     # hr(),
-                     # 
-                     # #Where the table is displayed
-                     # fluidRow(
-                     #   column(width=6,
-                     #          DT::dataTableOutput("table"), style = "height: 500px; overflow-y: scroll; border-right: 2px solid #F0F0F0"),
-                     #   
-                     #   column(width=6, plotOutput("myPlot"))
-                     # )
+                     #Inputs to select which data set is displays, download buttons for plot and data, and a description of the sector
+                     
+                     fluidRow(
+                       column(width=3, selectInput("agr_dataset", "NAICS Code Length", datasets, selected = "1-digit"), 
+                              downloadButton("agr_downloadData", "Download Data"), 
+                              downloadButton("agr_DownloadVis", "Download Plot"),
+                              style = "border-right: 2px solid #F0F0F0;"),
+                       column(width=9, tagList(tags$h4("About These Data", br()),
+                                         tags$h5("The North American Industry Classification System (NAICS) is the standard numeric coding system 
+                                               developed by the U.S. Office of Management and Budget, and used by Federal statistical agencies 
+                                               in classifying business establishments for the purpose of collecting, analyzing, 
+                                               and publishing statistical data related to the U.S. business economy. 
+                                               A handful of minor alterations 
+                                               have been made in the NAICS categories shown here, 
+                                               for clarity in presenting energy and emissions data..")
+                       )
+                       ),
+                       
+                     ),
+                     
+                     
+                     hr(),
+
+                     #Display Plot
+                     fluidRow(
+                       column(width=12, plotOutput("agr_Plot"))
+                     ),
+                     
+                     hr(),
+                     
+                     #Display Table
+                     fluidRow(
+                       column(width=12, DT::dataTableOutput("agr_table"))
+                     ),
             ),
             
             tabPanel(span("Electricity Generation", title="Egrid Electricity Generation Emissions Data"),
@@ -187,61 +202,76 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
+  
+# Industry / Manufacturing Page
     
     #When the user selected data set is changed, change the data set being viewed
-    datasetInput <- reactive({
-        switch(input$dataset,
+    ind_datasetInput <- reactive({
+        switch(input$ind_dataset,
                "1-digit" = gfl_1dig,
                "2-digit" = gfl_2dig,
                "3-digit" = gfl_3dig,
-               "4-digit" = gfl_4dig)
-    })
-
-    refinedDataset <- reactive ({
-        datasetInput()[,-1] %>%
-          mutate(across(is.numeric, round, digits=2))
+               "4-digit" = gfl_4dig,
+               "1-digit")
     })
     
-    output$table <- DT::renderDataTable(refinedDataset(), rownames = FALSE, filter = "top", 
+    #Create the filter expression for the refined dataset
+    ind_naicsCode <-  reactive({
+        switch(input$ind_dataset,
+             "1-digit" = "NAICS1dig > 1",
+             "2-digit" = "NAICS2dig >= 20",
+             "3-digit" = "NAICS3dig >= 200",
+             "4-digit" = "NAICS4dig >= 2000",
+             "NAICS1dig > 1")
+    })
+
+    ind_refinedDataset <- reactive ({
+        ind_datasetInput()[,-1] %>%
+        mutate(across(is.numeric, round, digits=2)) %>%
+        filter_(ind_naicsCode())
+    })
+    
+    output$ind_table <- DT::renderDataTable(ind_refinedDataset(), rownames = FALSE, filter = "top", 
                                         extensions = list("Scroller" = NULL),
-                                        options = list(scrollX = TRUE, scrollY = '400px', scroller = TRUE, dom = "lt"), # Show the (l)ength input and (t)able
-                                        colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL", 
+                                        options = list(scrollX = TRUE, scrollY = '400px', scroller = TRUE, dom = "ltp"), # Show the (l)ength input and (t)able
+                                        colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL",
                                                    "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze"),
     )
 
-    output$downloadData <- downloadHandler(
+    output$ind_downloadData <- downloadHandler(
         filename = function() {
-            paste("GFLcountyEnergyPerFuelYear_", input$dataset, ".tsv", sep="")
+            paste("GFLcountyEnergyPerFuelYear_", input$ind_dataset, ".tsv", sep="")
         },
         content = function(file) {
             # Filtering the data allows us to download the currently shown data
-            filtered = input$table_rows_all
-            write.table(refinedDataset()[filtered, , drop = FALSE], file, row.names = FALSE, sep="\t")
+            filtered = input$ind_table_rows_all
+            write.table(ind_refinedDataset()[filtered, , drop = FALSE], file, row.names = FALSE, sep="\t")
         }
         
     )
     
-    output$downloadVis <- downloadHandler(
+    output$ind_downloadVis <- downloadHandler(
       filename = function() {
-        paste("GFLcountyEnergyPerFuelYear_", input$dataset, ".png", sep="")
+        paste("GFLcountyEnergyPerFuelYear_", input$ind_dataset, ".png", sep="")
       },
       content = function(file) {
-        ggsave(file, plot = gflPlot(), device = "png")
+        ggsave(file, plot = ind_gflPlot(), device = "png")
       }
     )
     
-    totalEmissions <- reactive({
+    ind_totalEmissions <- reactive({
       # Filtering the data allows the visualization to be adaptive to the currently shown data
-      filtered = input$table_rows_all
-      refinedDataset()[filtered, , drop = FALSE] %>% 
+      filtered = input$ind_table_rows_all
+      ind_refinedDataset()[filtered, , drop = FALSE] %>% 
         group_by(YEAR) %>%
         summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil, 
                             Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
+      
     })
     
-    gflPlot <- reactive({
+    ind_gflPlot <- reactive({
       
-      vals = totalEmissions()[2]
+      vals = ind_totalEmissions()[2]
       if (!empty(vals)){
         min_val = min(vals)
         min_exponent = floor(log10(min_val)-1)
@@ -258,20 +288,118 @@ server <- function(input, output) {
         sequence = 0
       }
       
-      plot <- ggplot(totalEmissions(), aes(x=YEAR, y=as.integer(sum))) +
+      ind_plot <- ggplot(ind_totalEmissions(), aes(x=YEAR, y=as.integer(sum))) +
         geom_col(width = 0.4, fill="red") +
-        coord_cartesian(ylim = c(final_min, final_max + sequence)) +
-        scale_y_continuous(breaks = seq(final_min, final_max + sequence, by = sequence)) + 
+        coord_cartesian(ylim = c(final_min, final_max)) +
+        scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) + 
         scale_x_continuous(breaks = seq(2010, 2100, by = 1)) + 
-        xlab("Year") + ylab("Total Emissions (UNITS)") + 
+        xlab("Year") + ylab("Total Emissions (MMBtu)") + 
+        theme(
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank()
+        )
+    })
+    
+    output$ind_Plot <- renderPlot({
+      print(ind_gflPlot())
+    })
+    
+#Agriculture Page
+    #When the user selected data set is changed, change the data set being viewed
+    agr_datasetInput <- reactive({
+      switch(input$agr_dataset,
+             "1-digit" = gfl_1dig,
+             "2-digit" = gfl_2dig,
+             "3-digit" = gfl_3dig,
+             "4-digit" = gfl_4dig,
+             "1-digit")
+    })
+
+    #Create the filter expression for the refined dataset
+    agr_naicsCode <-  reactive({
+      switch(input$agr_dataset,
+             "1-digit" = "NAICS1dig == 1",
+             "2-digit" = "NAICS2dig < 20",
+             "3-digit" = "NAICS3dig < 200",
+             "4-digit" = "NAICS4dig < 2000",
+             "NAICS1dig > 1")
+    })
+
+    agr_refinedDataset <- reactive ({
+      agr_datasetInput()[,-1] %>%
+        mutate(across(is.numeric, round, digits=2)) %>%
+        filter_(agr_naicsCode())
+    })
+
+    output$agr_table <- DT::renderDataTable(agr_refinedDataset(), rownames = FALSE, filter = "top",
+                                            extensions = list("Scroller" = NULL),
+                                            options = list(scrollX = TRUE, scrollY = '400px', scroller = TRUE, dom = "ltp"), # Show the (l)ength input and (t)able
+                                            colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL",
+                                                       "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze"),
+    )
+
+    output$agr_downloadData <- downloadHandler(
+      filename = function() {
+        paste("GFLcountyEnergyPerFuelYear_", input$agr_dataset, ".tsv", sep="")
+      },
+      content = function(file) {
+        # Filtering the data allows us to download the currently shown data
+        filtered = input$agr_table_rows_all
+        write.table(agr_refinedDataset()[filtered, , drop = FALSE], file, row.names = FALSE, sep="\t")
+      }
+
+    )
+
+    output$agr_downloadVis <- downloadHandler(
+      filename = function() {
+        paste("GFLcountyEnergyPerFuelYear_", input$agr_dataset, ".png", sep="")
+      },
+      content = function(file) {
+        ggsave(file, plot = agr_gflPlot(), device = "png")
+      }
+    )
+    
+    agr_totalEmissions <- reactive({
+      filtered = input$agr_table_rows_all
+      agr_refinedDataset()[filtered, , drop = FALSE] %>%
+        group_by(YEAR) %>%
+        summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
+                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
+    })
+
+    agr_gflPlot <- reactive({
+
+      vals = agr_totalEmissions()[2]
+      if (!empty(vals)){
+        min_val = min(vals)
+        min_exponent = floor(log10(min_val)-1)
+        final_min = round_any(min_val, 10^min_exponent, f = floor)
+
+        max_val = max(vals)
+        max_exponent = floor(log10(max_val)-1)
+        final_max = round_any(max_val, 10^max_exponent, f = ceiling)
+
+        sequence = (final_max - final_min) / 10
+      } else {
+        final_min = 0
+        final_max = 0
+        sequence = 0
+      }
+
+      agr_plot <- ggplot(agr_totalEmissions(), aes(x=YEAR, y=as.integer(sum))) +
+        geom_col(width = 0.4, fill="red") +
+        coord_cartesian(ylim = c(final_min, final_max)) +
+        scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
+        scale_x_continuous(breaks = seq(2010, 2100, by = 1)) +
+        xlab("Year") + ylab("Total Emissions (MMBtu)") +
         theme(
           panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank()
           )
     })
-    
-    output$myPlot <- renderPlot({
-        print(gflPlot())
+
+    output$agr_Plot <- renderPlot({
+        print(agr_gflPlot())
     })
 }
 
