@@ -55,6 +55,45 @@ Updated_county_energy_estimates <- transmute(Updated_county_energy_estimates,
                                      STATE = STATE,
                                      IND_SECTOR = IND_SECTOR)
 
+###
+#Start fixNAICSgaps
+###
+
+uncodedAgricultureRows <- Updated_county_energy_estimates %>% 
+  filter((is.na(NAICS) & IND_SECTOR == 'Agriculture')) %>%
+  select(-NAICS) %>% 
+  mutate(NAICS = 119100)
+
+#remove NA columns from the dataframe
+Updated_county_energy_estimates = Updated_county_energy_estimates[!is.na(Updated_county_energy_estimates$NAICS),];
+
+# Find rows containing an NAICS value we want to replace, 
+# and insert the replacement value. 
+fixRows <- function(df, bad, fixed) {
+  df %>% 
+    filter((NAICS == bad) & (MMBTU_TOTAL >= 0.000001)) %>% 
+    mutate(NAICS = fixed)
+}
+
+# Replace NAICS values 236, 237, and 238 with their synthetic 4-digit 
+# replacements. This allows us to do 4-digit slices without missing 
+# energy use for these NAICS categories. 
+fixedRows236 <- fixRows(Updated_county_energy_estimates, 236, 2369)
+fixedRows237 <- fixRows(Updated_county_energy_estimates, 237, 2378)
+fixedRows238 <- fixRows(Updated_county_energy_estimates, 238, 2388)
+
+# Pare off the rows we don't want; replace them with the rows we do. 
+Updated_county_energy_estimates <- Updated_county_energy_estimates %>%
+  filter(!((NAICS %in% c(236, 237, 238)) & (MMBTU_TOTAL >= 0.0000000001))) %>%
+  bind_rows(fixedRows236, fixedRows237, fixedRows238) %>%
+  bind_rows(uncodedAgricultureRows) %>%
+  arrange(YEAR, County, NAICS)
+
+
+###
+#end fixNAICSgaps
+###
+
 NYcountyEnergyEsts <- Updated_county_energy_estimates %>% 
   filter(STATE == "NEW YORK") %>%                       # Keep only the NEW YORK rows
   left_join(County_FIPS_codes, by = "COUNTY_FIPS") %>%  # Add county names
@@ -81,6 +120,8 @@ trimInt <- function(int, toDigits = 1) {
 #################
 #START GIVEN CODE
 #################
+
+
 
 ###
 # Start synthisise NAICS
@@ -277,7 +318,7 @@ NYcountyEnergyPerFuelYear1dig <- NYcountyEnergyEsts %>%
 
 # Make the fuel types columns
 NYcountyEnergyPerFuelYear_1dig <-pivot_wider(
-  NYEnergyPerFuelYear1dig, 
+  NYcountyEnergyPerFuelYear1dig, 
   names_from = MECS_FT, 
   values_from = MMBTU)
 
