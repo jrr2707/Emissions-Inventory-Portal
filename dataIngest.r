@@ -9,6 +9,7 @@ library(dplyr)
 library(readr)
 library(readxl)
 library(stringr)
+library(stringi)
 
 my_secrets <- function() {
   path = "./secrets/secrets.json"
@@ -36,11 +37,15 @@ County_FIPS_codes <- read_delim("County FIPS codes.txt",
 gunzip("downloads/EnergyEst.gzip", destname = gsub("[.]gz$", "", "downloads/EnergyEst.csv"), overwrite=TRUE);
 
 X2017_NAICS_Descriptions <- read_excel("downloads/2017_NAICS_Descriptions.xlsx")
+
+
 NAICS_Descriptions_2017 <- transmute(X2017_NAICS_Descriptions, 
                                      NAICS = suppressWarnings(as.integer(Code)), 
                                      NAICSname = Title, 
                                      NAICSdescr = Description,
                                      origin = "native")
+
+NAICS_Descriptions_2017$NAICSname = stri_replace_first_regex(NAICS_Descriptions_2017$NAICSname, "T$", "")
 
 Updated_county_energy_estimates <- read_csv("downloads/EnergyEst.csv",
                                             show_col_types = FALSE)
