@@ -365,6 +365,21 @@ for (fuel in fuelNames) {
     which(is.na(NYcountyEnergyPerFuelYear_4dig[[fuel]]))] <- 0
 }
 
+# sum just the diesel though  Coke_and_breeze columns from the datatables
+
+NYcountyEnergyPerFuelYear_1dig <- NYcountyEnergyPerFuelYear_1dig %>% 
+  mutate(total = mean(c_across(Diesel:Coke_and_breeze)));
+
+NYcountyEnergyPerFuelYear_2dig <- NYcountyEnergyPerFuelYear_2dig %>% 
+  mutate(total = mean(c_across(Diesel:Coke_and_breeze)));
+
+NYcountyEnergyPerFuelYear_3dig <- NYcountyEnergyPerFuelYear_3dig %>%
+  mutate(total = mean(c_across(Diesel:Coke_and_breeze)));
+
+NYcountyEnergyPerFuelYear_4dig <- NYcountyEnergyPerFuelYear_4dig %>%
+  mutate(total = mean(c_across(Diesel:Coke_and_breeze)));
+
+
 
 
 # Connect to a specific postgres database
@@ -380,8 +395,6 @@ NY_1dig <- NYcountyEnergyPerFuelYear_1dig;
 NY_2dig <- NYcountyEnergyPerFuelYear_2dig;
 NY_3dig <- NYcountyEnergyPerFuelYear_3dig;
 NY_4dig <- NYcountyEnergyPerFuelYear_4dig;
-
-
 
 
 res <- dbSendQuery(con, "DROP TABLE IF EXISTS gf1_1dig")

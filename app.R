@@ -235,7 +235,7 @@ server <- function(input, output) {
                                         extensions = list("Scroller" = NULL),
                                         options = list(scrollX = TRUE, scrollY = '400px', scroller = TRUE, dom = "ltp"), # Show the (l)ength input and (t)able
                                         colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL",
-                                                   "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze"),
+                                                   "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze", "Total"),
     )
 
     output$ind_downloadData <- downloadHandler(
