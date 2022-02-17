@@ -373,16 +373,16 @@ for (fuel in fuelNames) {
 # sum just the diesel though  Coke_and_breeze columns from the datatables
 
 NYcountyEnergyPerFuelYear_1dig <- NYcountyEnergyPerFuelYear_1dig %>% 
-  mutate(total = mean(c_across(Diesel:Coke_and_breeze)));
+  mutate(total = sum(c_across(Diesel:Coke_and_breeze)));
 
 NYcountyEnergyPerFuelYear_2dig <- NYcountyEnergyPerFuelYear_2dig %>% 
-  mutate(total = mean(c_across(Diesel:Coke_and_breeze)));
+  mutate(total = sum(c_across(Diesel:Coke_and_breeze)));
 
 NYcountyEnergyPerFuelYear_3dig <- NYcountyEnergyPerFuelYear_3dig %>%
-  mutate(total = mean(c_across(Diesel:Coke_and_breeze)));
+  mutate(total = sum(c_across(Diesel:Coke_and_breeze)));
 
 NYcountyEnergyPerFuelYear_4dig <- NYcountyEnergyPerFuelYear_4dig %>%
-  mutate(total = mean(c_across(Diesel:Coke_and_breeze)));
+  mutate(total = sum(c_across(Diesel:Coke_and_breeze)));
 
 
 
