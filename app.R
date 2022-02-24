@@ -117,7 +117,7 @@ ui <- fluidPage(
                 
                 #Display Table
                 fluidRow(
-                  column(width=12, DT::dataTableOutput("ind_table"))
+                  column(width=12, DT::dataTableOutput("ind_table"), style=".dataTable({overflow-x: hidden;})")
                 ),
                 
                 hr()
@@ -203,6 +203,20 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   
+  fuelTypes <- read.csv("Standard fuel types.csv", header=FALSE)
+  
+  tooltips = paste("['", fuelTypes[2,2], "', '", fuelTypes[3,2], "', '", fuelTypes[4,2], "', '", fuelTypes[5,2], "', '",
+                   fuelTypes[6,2], "', '", fuelTypes[7,2], "', '", fuelTypes[8,2], "', '", fuelTypes[9,2], "', '", fuelTypes[10,2], "', '",
+                   fuelTypes[11,2], "', '", fuelTypes[12,2], "', '", fuelTypes[13,2], "', '", fuelTypes[14,2], "']", sep="")
+  
+  headerCallback <- c(
+    "function(thead, data, start, end, display){",
+    paste("  var tooltips = ", tooltips, ";", sep=""),
+    "  for(var i=0; i<13; i++){",
+    "    $('th:eq('+i+')',thead).attr('title', tooltips[i]);",
+    "  }",
+    "}")
+  
 # Industry / Manufacturing Page
     
     #When the user selected data set is changed, change the data set being viewed
@@ -231,9 +245,10 @@ server <- function(input, output) {
         filter_(ind_naicsCode())
     })
     
-    output$ind_table <- DT::renderDataTable(ind_refinedDataset(), rownames = FALSE, filter = "top", 
-                                        extensions = list("Scroller" = NULL),
-                                        options = list(scrollX = TRUE, scrollY = '400px', scroller = TRUE, dom = "ltp"), # Show the (l)ength input and (t)able
+    output$ind_table <- DT::renderDataTable(ind_refinedDataset(), rownames = FALSE, filter = "top",
+                                        options = list(scrollX=FALSE, scrollY='400px', pageLength = 100, 
+                                                       lengthMenu = c(50, 100, 150, 200, 250), dom = "ltp",
+                                                       headerCallback=JS(headerCallback)), # Show the (l)ength input and (t)able
                                         colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL",
                                                    "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze", "Total"),
     )
@@ -332,10 +347,12 @@ server <- function(input, output) {
     })
 
     output$agr_table <- DT::renderDataTable(agr_refinedDataset(), rownames = FALSE, filter = "top",
-                                            extensions = list("Scroller" = NULL),
-                                            options = list(scrollX = TRUE, scrollY = '400px', scroller = TRUE, dom = "ltp"), # Show the (l)ength input and (t)able
+                                            extensions = list(),
+                                            options = list(scrollX=FALSE, scrollY='400px', pageLength = 100, 
+                                                           lengthMenu = c(50, 100, 150, 200, 250), dom = "ltp",
+                                                           headerCallback=JS(headerCallback)), # Show the (l)ength input and (t)able
                                             colnames=c("Year", "County", "NAICS Code", "NAICS Category", "Diesel", "LPG NGL",
-                                                       "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze", "total"),
+                                                       "Net Electricity", "Other", "Residual Fuel Oil", "Coal", "Natural Gas", "Coke and Breeze", "Total"),
     )
 
     output$agr_downloadData <- downloadHandler(
