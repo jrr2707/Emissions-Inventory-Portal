@@ -93,7 +93,7 @@ ui <- fluidPage(
                     column(width=3, selectInput("ind_dataset", "NAICS Code Length", datasets, selected = "1-digit", width = "200px"), 
                            selectInput("ind_unit", "Unit", units, selected = "MMbtu", width = "200px"),
                            downloadButton("ind_downloadData", "Download Data"), 
-                           downloadButton("ind_DownloadVis", "Download Plot"),
+                           downloadButton("ind_downloadVis", "Download Plot"),
                            style = "border-right: 2px solid #F0F0F0;"),
                     column(width=9, tagList(tags$h4("About These Data", br()),
                                        tags$h5("The North American Industry Classification System (NAICS) is the standard numeric coding system 
@@ -134,7 +134,7 @@ ui <- fluidPage(
                        column(width=3, selectInput("agr_dataset", "NAICS Code Length", datasets, selected = "1-digit"),
                               selectInput("agr_unit", "Unit", units, selected = "MMbtu", width = "200px"),
                               downloadButton("agr_downloadData", "Download Data"), 
-                              downloadButton("agr_DownloadVis", "Download Plot"),
+                              downloadButton("agr_downloadVis", "Download Plot"),
                               style = "border-right: 2px solid #F0F0F0;"),
                        column(width=9, tagList(tags$h4("About These Data", br()),
                                          tags$h5("The North American Industry Classification System (NAICS) is the standard numeric coding system 
@@ -274,7 +274,7 @@ server <- function(input, output) {
 
     output$ind_downloadData <- downloadHandler(
         filename = function() {
-            paste("GFLcountyEnergyPerFuelYear_", input$ind_dataset, ".tsv", sep="")
+            paste("IndustryNAICSHeatPerYear_", input$ind_dataset, ".tsv", sep="")
         },
         content = function(file) {
             # Filtering the data allows us to download the currently shown data
@@ -286,10 +286,10 @@ server <- function(input, output) {
     
     output$ind_downloadVis <- downloadHandler(
       filename = function() {
-        paste("GFLcountyEnergyPerFuelYear_", input$ind_dataset, ".png", sep="")
+          paste("IndustryNAICSHeatPerYear_", input$ind_dataset, ".png", sep="")
       },
       content = function(file) {
-        ggsave(file, plot = ind_gflPlot(), device = "png")
+          ggsave(file, plot = ind_gflPlot(), device = "png")
       }
     )
     
@@ -298,7 +298,7 @@ server <- function(input, output) {
       filtered = input$ind_table_rows_all
       ind_refinedDataset()[filtered, , drop = FALSE] %>% 
         group_by(YEAR) %>%
-        summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil, 
+        summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
                             Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
       
     })
@@ -391,7 +391,7 @@ server <- function(input, output) {
 
     output$agr_downloadData <- downloadHandler(
       filename = function() {
-        paste("GFLcountyEnergyPerFuelYear_", input$agr_dataset, ".tsv", sep="")
+        paste("AgricultureNAICSHeatPerYear_", input$agr_dataset, ".tsv", sep="")
       },
       content = function(file) {
         # Filtering the data allows us to download the currently shown data
@@ -403,7 +403,7 @@ server <- function(input, output) {
 
     output$agr_downloadVis <- downloadHandler(
       filename = function() {
-        paste("GFLcountyEnergyPerFuelYear_", input$agr_dataset, ".png", sep="")
+        paste("AgricultureNAICSHeatPerYear_", input$agr_dataset, ".png", sep="")
       },
       content = function(file) {
         ggsave(file, plot = agr_gflPlot(), device = "png")
