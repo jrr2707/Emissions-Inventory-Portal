@@ -41,6 +41,8 @@ gfl_2dig <- dbReadTable(con, 'gf1_2dig')
 gfl_3dig <- dbReadTable(con, 'gf1_3dig')
 gfl_4dig <- dbReadTable(con, 'gf1_4dig')
 
+units <- list("MMbtu", "Therm", "Half", "Double")
+
 ui <- fluidPage(
 # Define UI for application that draws a histogram
     
@@ -88,7 +90,8 @@ ui <- fluidPage(
                 #Inputs to select which data set is displays, download buttons for plot and data, and a description of the sector
                 
                 fluidRow(
-                    column(width=3, selectInput("ind_dataset", "NAICS Code Length", datasets, selected = "1-digit"), 
+                    column(width=3, selectInput("ind_dataset", "NAICS Code Length", datasets, selected = "1-digit", width = "200px"), 
+                           selectInput("ind_unit", "Unit", units, selected = "MMbtu", width = "200px"),
                            downloadButton("ind_downloadData", "Download Data"), 
                            downloadButton("ind_DownloadVis", "Download Plot"),
                            style = "border-right: 2px solid #F0F0F0;"),
@@ -128,7 +131,8 @@ ui <- fluidPage(
                      #Inputs to select which data set is displays, download buttons for plot and data, and a description of the sector
                      
                      fluidRow(
-                       column(width=3, selectInput("agr_dataset", "NAICS Code Length", datasets, selected = "1-digit"), 
+                       column(width=3, selectInput("agr_dataset", "NAICS Code Length", datasets, selected = "1-digit"),
+                              selectInput("agr_unit", "Unit", units, selected = "MMbtu", width = "200px"),
                               downloadButton("agr_downloadData", "Download Data"), 
                               downloadButton("agr_DownloadVis", "Download Plot"),
                               style = "border-right: 2px solid #F0F0F0;"),
@@ -229,6 +233,20 @@ server <- function(input, output) {
                "1-digit")
     })
     
+    #When the user selects a different unit change the multiplier used to convert the data to the correct unit
+    ind_multiplier <- reactive({
+      switch(input$ind_unit,
+             "MMbtu" = 1,
+             "Therm" = .1,
+             "Half" = .5,
+             "Double" = 2)
+      
+    })
+    
+    unit_conversion <- function(x) {
+      converted <- x * ind_multiplier()
+    }
+    
     #Create the filter expression for the refined dataset
     ind_naicsCode <-  reactive({
         switch(input$ind_dataset,
@@ -241,6 +259,7 @@ server <- function(input, output) {
 
     ind_refinedDataset <- reactive ({
         ind_datasetInput()[,-1] %>%
+        mutate(across(c(5,13), unit_conversion)) %>%
         mutate(across(is.numeric, round, digits=2)) %>%
         filter_(ind_naicsCode())
     })
@@ -308,7 +327,7 @@ server <- function(input, output) {
         coord_cartesian(ylim = c(final_min, final_max)) +
         scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) + 
         scale_x_continuous(breaks = seq(2010, 2100, by = 1)) + 
-        xlab("Year") + ylab("Total Emissions (MMBtu)") + 
+        xlab("Year") + ylab(paste("Total Emissions (", input$ind_unit, ")", sep="")) + 
         theme(
           panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank()
@@ -339,9 +358,24 @@ server <- function(input, output) {
              "4-digit" = "NAICS4dig < 2000",
              "NAICS1dig > 1")
     })
+    
+    #When the user selects a different unit change the multiplier used to convert the data to the correct unit
+    agr_multiplier <- reactive({
+      switch(input$agr_unit,
+             "MMbtu" = 1,
+             "Therm" = .1,
+             "Half" = .5,
+             "Double" = 2)
+      
+    })
+    
+    agr_unit_conversion <- function(x) {
+      converted <- x * agr_multiplier()
+    }
 
     agr_refinedDataset <- reactive ({
       agr_datasetInput()[,-1] %>%
+        mutate(across(c(5,13), agr_unit_conversion)) %>%
         mutate(across(is.numeric, round, digits=2)) %>%
         filter_(agr_naicsCode())
     })
@@ -408,7 +442,7 @@ server <- function(input, output) {
         coord_cartesian(ylim = c(final_min, final_max)) +
         scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
         scale_x_continuous(breaks = seq(2010, 2100, by = 1)) +
-        xlab("Year") + ylab("Total Emissions (MMBtu)") +
+        xlab("Year") + ylab(paste("Total Emissions (", input$agr_unit, ")", sep="")) +
         theme(
           panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank()
