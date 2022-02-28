@@ -261,6 +261,7 @@ server <- function(input, output) {
         ind_datasetInput()[,-1] %>%
         mutate(across(c(5,13), unit_conversion)) %>%
         mutate(across(where(is.numeric), round, digits=2)) %>%
+        mutate(across(.cols = 1:2, as.factor)) %>%
         filter_(ind_naicsCode())
     })
     
@@ -326,7 +327,7 @@ server <- function(input, output) {
         geom_col(width = 0.4, fill="red") +
         coord_cartesian(ylim = c(final_min, final_max)) +
         scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) + 
-        scale_x_continuous(breaks = seq(2010, 2100, by = 1)) + 
+        scale_x_discrete(name = 'Year') +
         xlab("Year") + ylab(paste("Total Emissions (", input$ind_unit, ")", sep="")) + 
         theme(
           panel.grid.major.x = element_blank(),
@@ -377,6 +378,7 @@ server <- function(input, output) {
       agr_datasetInput()[,-1] %>%
         mutate(across(c(5,13), agr_unit_conversion)) %>%
         mutate(across(where(is.numeric), round, digits=2)) %>%
+        mutate(across(.cols = 1:2, as.factor)) %>%
         filter_(agr_naicsCode())
     })
 
@@ -441,7 +443,7 @@ server <- function(input, output) {
         geom_col(width = 0.4, fill="red") +
         coord_cartesian(ylim = c(final_min, final_max)) +
         scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
-        scale_x_continuous(breaks = seq(2010, 2100, by = 1)) +
+        scale_x_discrete(name = 'Year') +
         xlab("Year") + ylab(paste("Total Emissions (", input$agr_unit, ")", sep="")) +
         theme(
           panel.grid.major.x = element_blank(),
