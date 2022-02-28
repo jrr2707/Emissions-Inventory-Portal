@@ -260,7 +260,7 @@ server <- function(input, output) {
     ind_refinedDataset <- reactive ({
         ind_datasetInput()[,-1] %>%
         mutate(across(c(5,13), unit_conversion)) %>%
-        mutate(across(is.numeric, round, digits=2)) %>%
+        mutate(across(where(is.numeric), round, digits=2)) %>%
         filter_(ind_naicsCode())
     })
     
@@ -376,7 +376,7 @@ server <- function(input, output) {
     agr_refinedDataset <- reactive ({
       agr_datasetInput()[,-1] %>%
         mutate(across(c(5,13), agr_unit_conversion)) %>%
-        mutate(across(is.numeric, round, digits=2)) %>%
+        mutate(across(where(is.numeric), round, digits=2)) %>%
         filter_(agr_naicsCode())
     })
 
