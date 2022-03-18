@@ -412,17 +412,45 @@ server <- function(input, output) {
       }
     )
     
-    agr_totalEmissions <- reactive({
+    agr_countiesSummary <- reactive({
       filtered = input$agr_table_rows_all
       agr_refinedDataset()[filtered, , drop = FALSE] %>%
+          group_by(County) %>%
+        summarize(emissions = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
+                                  Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE) %>%
+        arrange(emissions)
+    })
+    
+
+    
+    agr_counties <- reactive({
+      agr_countiesSummary()$County
+    })
+    
+    agr_totalYearlyEmissions <- reactive({
+      filtered = input$agr_table_rows_all
+      agr_refinedDataset()[filtered, , drop = TRUE] %>%
         group_by(YEAR) %>%
         summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
-                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
+                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE, .groups = "drop")
+    })
+    
+    agr_totalCountyEmissions <- reactive({
+      filtered = input$agr_table_rows_all
+      agr_refinedDataset()[filtered, , drop = TRUE] %>%
+        group_by(County, YEAR) %>%
+        summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
+                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE, .groups = "drop")
+    })
+    
+    reactive({
+      agr_totalCountyEmissions()$County <- factor(agr_totalCountyEmissions()$County, levels = agr_counties(), ordered = TRUE)
+
     })
 
     agr_gflPlot <- reactive({
-
-      vals = agr_totalEmissions()[2]
+      
+      vals = agr_totalYearlyEmissions()[2]
       if (!empty(vals)){
         min_val = min(vals)
         min_exponent = floor(log10(min_val)-1)
@@ -439,8 +467,35 @@ server <- function(input, output) {
         sequence = 0
       }
 
-      agr_plot <- ggplot(agr_totalEmissions(), aes(x=YEAR, y=as.integer(sum))) +
-        geom_col(width = 0.4, fill="red") +
+      agr_plot <- ggplot(agr_totalCountyEmissions()) +
+        # geom_col(width = 0.4, fill="red") +
+        scale_fill_manual(values = c(
+          "#e6194B", "#000075", "#3cb44b", "#9A6324",
+          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+          "#469990", "#800000", "#ffe119", "#aaffc3",
+          "#e6194B", "#000075", "#3cb44b", "#9A6324",
+          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+          "#469990", "#800000", "#ffe119", "#aaffc3",
+          "#e6194B", "#000075", "#3cb44b", "#9A6324",
+          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+          "#469990", "#800000", "#ffe119", "#aaffc3",
+          "#e6194B", "#000075", "#3cb44b", "#9A6324",
+          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+          "#469990", "#800000", "#ffe119", "#aaffc3",
+          "#e6194B", "#000075", "#3cb44b", "#9A6324",
+          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+          "#469990", "#800000", "#ffe119", "#aaffc3",
+          "#e6194B", "#000075", "#3cb44b", "#9A6324",
+          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+          "#469990", "#800000", "#ffe119", "#aaffc3",
+          "#e6194B", "#000075", "#3cb44b", "#9A6324",
+          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+          "#469990", "#800000", "#ffe119", "#aaffc3",
+          "#e6194B", "#000075", "#3cb44b", "#9A6324",
+          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+          "#469990", "#800000", "#ffe119", "#aaffc3"),
+          name = "County",
+          breaks = agr_counties()) +
         coord_cartesian(ylim = c(final_min, final_max)) +
         scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
         scale_x_discrete(name = 'Year') +
@@ -448,7 +503,8 @@ server <- function(input, output) {
         theme(
           panel.grid.major.x = element_blank(),
           panel.grid.minor.x = element_blank()
-          )
+          ) +
+        geom_col(width = 0.4, aes(x=YEAR, y=as.integer(sum), fill = County))
     })
 
     output$agr_Plot <- renderPlot({
