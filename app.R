@@ -111,9 +111,23 @@ ui <- fluidPage(
                        
                 hr(),
                 
-                #Display Plot
-                fluidRow(
-                  column(width=12, plotOutput("ind_Plot"))
+                navbarPage("",
+                  
+                  tabPanel(span("One", title="The Basic Plot"),
+                    # Display basic plot
+                    fluidRow(
+                      column(width=12, plotOutput("ind_Plot"))
+                    ),
+                  ),
+                  tabPanel(span("Two", title="The Stacked Plot"),
+                    # Display basic plot
+                    fluidRow(
+                      column(width=12, plotOutput("ind_Plot_Stack"))
+                    ),
+                  ),
+                  tabPanel(span("Three", title="The % Plot"),
+                    # TODO
+                  ),
                 ),
                 
                 hr(),
@@ -152,9 +166,23 @@ ui <- fluidPage(
                      
                      hr(),
 
-                     #Display Plot
-                     fluidRow(
-                       column(width=12, plotOutput("agr_Plot"))
+                     navbarPage("",
+                                
+                      tabPanel(span("One", title="The Basic Plot"),
+                         # Display basic plot
+                         fluidRow(
+                           column(width=12, plotOutput("agr_Plot"))
+                         ),
+                       ),
+                       tabPanel(span("Two", title="The Stacked Plot"),
+                         # Display basic plot
+                         fluidRow(
+                           column(width=12, plotOutput("agr_Plot_Stack"))
+                         ),
+                       ),
+                       tabPanel(span("Three", title="The % Plot"),
+                         # TODO
+                       ),
                      ),
                      
                      hr(),
@@ -285,28 +313,69 @@ server <- function(input, output) {
         
     )
     
+    # TODO: Download currently shown visualization (AND AGR)
     output$ind_downloadVis <- downloadHandler(
       filename = function() {
           paste("IndustryNAICSHeatPerYear_", input$ind_dataset, ".png", sep="")
       },
       content = function(file) {
-          ggsave(file, plot = ind_gflPlot(), device = "png")
+          ggsave(file, plot = ind_Plot(), device = "png")
       }
     )
     
-    ind_totalEmissions <- reactive({
-      # Filtering the data allows the visualization to be adaptive to the currently shown data
+    ind_countiesSummary <- reactive({
       filtered = input$ind_table_rows_all
-      ind_refinedDataset()[filtered, , drop = FALSE] %>% 
-        group_by(YEAR) %>%
-        summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
-                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE)
-      
+      ind_refinedDataset()[filtered, , drop = FALSE] %>%
+        group_by(County) %>%
+        summarize(emissions = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
+                                  Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE) #%>%
+        #arrange(desc(County))
     })
     
-    ind_gflPlot <- reactive({
+    # isolate({print(ind_countiesSummary())})
+    # 
+    # reactive({ind_countiesSummary() %>% arrange(emissions)})
+    # 
+    # isolate({print(ind_countiesSummary())})
+    
+    ind_counties <- reactive({
+      ind_countiesSummary()$County
+    })
+    
+    ind_totalYearlyEmissions <- reactive({
+      filtered = input$ind_table_rows_all
+      ind_refinedDataset()[filtered, , drop = TRUE] %>%
+        group_by(YEAR) %>%
+        summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
+                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE, .groups = "drop")
+    })
+    
+    ind_totalCountyEmissions <- reactive({
+      filtered = input$ind_table_rows_all
+      ind_refinedDataset()[filtered, , drop = TRUE] %>%
+        group_by(County, YEAR) %>%
+        summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
+                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE, .groups = "drop") %>%
+        arrange(sum)
+    })
+    
+    # isolate({print(ind_totalYearlyEmissions()$County)})
+    # isolate({print(ind_counties())})
+    # reactive({
+    #   ind_totalCountyEmissions()$County <- factor(ind_totalCountyEmissions()$County, levels = ind_counties(), ordered = TRUE)
+    #   sort(ind_totalCountyEmissions())
+    # })
+    # isolate({print(ind_totalCountyEmissions()$County)})
+    
+    # isolate({print(ind_counties())})
+    # ind_totalCountyEmissions <- reactive({
+    #   County <- factor(County, levels = ind_counties(), ordered = TRUE)
+    # })
+    # isolate({print(ind_totalCountyEmissions()$County)})
+    
+    ind_Plot <- reactive({
       
-      vals = ind_totalEmissions()[2]
+      vals = ind_totalYearlyEmissions()[2]
       if (!empty(vals)){
         min_val = min(vals)
         min_exponent = floor(log10(min_val)-1)
@@ -317,26 +386,89 @@ server <- function(input, output) {
         final_max = round_any(max_val, 10^max_exponent, f = ceiling)
         
         sequence = (final_max - final_min) / 10
+        
+        ind_plot <- ggplot(ind_totalYearlyEmissions(), aes(x=YEAR, y=as.integer(sum))) +
+          geom_col(width = 0.4, fill="red") +
+          coord_cartesian(ylim = c(final_min, final_max)) +
+          scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) + 
+          scale_x_discrete(name = 'Year') +
+          xlab("Year") + ylab(paste("Total Emissions (", input$ind_unit, ")", sep="")) + 
+          theme(
+            panel.grid.major.x = element_blank(),
+            panel.grid.minor.x = element_blank()
+          )
       } else {
-        final_min = 0
-        final_max = 0
-        sequence = 0
+        # Before it would display an error on the UI.  This makes it so it displays 
+        # a grey box where the plot should be.
+        ind_Plot <- ggplot()
       }
+    })
+    
+    ind_Plot_Stack <- reactive({
       
-      ind_plot <- ggplot(ind_totalEmissions(), aes(x=YEAR, y=as.integer(sum))) +
-        geom_col(width = 0.4, fill="red") +
-        coord_cartesian(ylim = c(final_min, final_max)) +
-        scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) + 
-        scale_x_discrete(name = 'Year') +
-        xlab("Year") + ylab(paste("Total Emissions (", input$ind_unit, ")", sep="")) + 
-        theme(
-          panel.grid.major.x = element_blank(),
-          panel.grid.minor.x = element_blank()
-        )
+      vals = ind_totalYearlyEmissions()[2]
+      if (!empty(vals)){
+        min_val = min(vals)
+        min_exponent = floor(log10(min_val)-1)
+        final_min = round_any(min_val, 10^min_exponent, f = floor)
+        
+        max_val = max(vals)
+        max_exponent = floor(log10(max_val)-1)
+        final_max = round_any(max_val, 10^max_exponent, f = ceiling)
+        
+        sequence = (final_max - final_min) / 10
+        
+        ind_plot_stack <- ggplot(ind_totalCountyEmissions()) +
+          scale_fill_manual(values = c(
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3"),
+          name = "County",
+          #breaks = ind_countieS()) + 
+          breaks = ind_totalCountyEmissions()$County) +
+          coord_cartesian(ylim = c(final_min, final_max)) +
+          scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
+          scale_x_discrete(name = 'Year') +
+          xlab("Year") + ylab(paste("Total Emissions (", input$ind_unit, ")", sep="")) +
+          theme(
+            panel.grid.major.x = element_blank(),
+            panel.grid.minor.x = element_blank()
+          ) +
+          geom_col(width = 0.4, aes(x=YEAR, y=as.integer(sum), fill = County))
+      } else {
+        # Before it would display an error on the UI.  This makes it so it displays 
+        # a grey box where the plot should be.
+        ind_Plot <- ggplot()
+      }
     })
     
     output$ind_Plot <- renderPlot({
-      print(ind_gflPlot())
+      print(ind_Plot())
+    })
+    
+    output$ind_Plot_Stack <- renderPlot({
+      print(ind_Plot_Stack())
     })
     
 #Agriculture Page
@@ -408,17 +540,18 @@ server <- function(input, output) {
         paste("AgricultureNAICSHeatPerYear_", input$agr_dataset, ".png", sep="")
       },
       content = function(file) {
-        ggsave(file, plot = agr_gflPlot(), device = "png")
+        ggsave(file, plot = agr_Plot(), device = "png")
       }
     )
     
     agr_countiesSummary <- reactive({
       filtered = input$agr_table_rows_all
       agr_refinedDataset()[filtered, , drop = FALSE] %>%
-          group_by(County) %>%
-        summarize(emissions = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
-                                  Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE) %>%
-        arrange(emissions)
+      group_by(County) %>%
+      summarize(emissions = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
+                                Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE) %>%
+      arrange(emissions)
+      print(agr_refinedDataset())
     })
     
 
@@ -426,6 +559,15 @@ server <- function(input, output) {
     agr_counties <- reactive({
       agr_countiesSummary()$County
     })
+    
+    print("")
+    print("")
+    print("")
+    isolate({print(agr_countiesSummary())})
+    isolate({print(agr_counties())})
+    print("")
+    print("")
+    print("")
     
     agr_totalYearlyEmissions <- reactive({
       filtered = input$agr_table_rows_all
@@ -440,16 +582,24 @@ server <- function(input, output) {
       agr_refinedDataset()[filtered, , drop = TRUE] %>%
         group_by(County, YEAR) %>%
         summarize(sum = sum(Diesel, LPG_NGL, Net_electricity, Other, Residual_fuel_oil,
-                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE, .groups = "drop")
+                            Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE, .groups = "drop") %>%
+        arrange(sum)
     })
-    
-    reactive({
-      agr_totalCountyEmissions()$County <- factor(agr_totalCountyEmissions()$County, levels = agr_counties(), ordered = TRUE)
+    isolate({print(ind_counties())})
+    # ind_totalCountyEmissions <- reactive({
+    #   County <- factor(County, levels = ind_counties(), ordered = TRUE)
+    # })
+    # isolate({print(ind_totalCountyEmissions()$County)})
+    # reactive({
+    #   agr_totalCountyEmissions$County <- factor(agr_totalCountyEmissions$County, levels = agr_counties(), ordered = TRUE)
+    #   sort(agr_totalCountyEmissions)
+    # 
+    # })
+    isolate({print(agr_totalCountyEmissions()$County)})
 
-    })
-
-    agr_gflPlot <- reactive({
+    agr_Plot <- reactive({
       
+      # REFACTORING - Make this a function and call it here and in agr_Plot_Stack (and agr_Plot_)
       vals = agr_totalYearlyEmissions()[2]
       if (!empty(vals)){
         min_val = min(vals)
@@ -461,54 +611,98 @@ server <- function(input, output) {
         final_max = round_any(max_val, 10^max_exponent, f = ceiling)
 
         sequence = (final_max - final_min) / 10
+        
+        agr_plot <- ggplot(agr_totalYearlyEmissions(), aes(x=YEAR, y=as.integer(sum))) +
+          geom_col(width = 0.4, fill="red") +
+          coord_cartesian(ylim = c(final_min, final_max)) +
+          scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
+          scale_x_discrete(name = 'Year') +
+          xlab("Year") + ylab(paste("Total Emissions (", input$agr_unit, ")", sep="")) +
+          theme(
+            panel.grid.major.x = element_blank(),
+            panel.grid.minor.x = element_blank()
+        )
+        
       } else {
-        final_min = 0
-        final_max = 0
-        sequence = 0
+        # Before it would display an error on the UI.  This makes it so it displays 
+        # a grey box where the plot should be.
+        agr_plot <- ggplot()
       }
-
-      agr_plot <- ggplot(agr_totalCountyEmissions()) +
-        # geom_col(width = 0.4, fill="red") +
-        scale_fill_manual(values = c(
-          "#e6194B", "#000075", "#3cb44b", "#9A6324",
-          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-          "#469990", "#800000", "#ffe119", "#aaffc3",
-          "#e6194B", "#000075", "#3cb44b", "#9A6324",
-          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-          "#469990", "#800000", "#ffe119", "#aaffc3",
-          "#e6194B", "#000075", "#3cb44b", "#9A6324",
-          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-          "#469990", "#800000", "#ffe119", "#aaffc3",
-          "#e6194B", "#000075", "#3cb44b", "#9A6324",
-          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-          "#469990", "#800000", "#ffe119", "#aaffc3",
-          "#e6194B", "#000075", "#3cb44b", "#9A6324",
-          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-          "#469990", "#800000", "#ffe119", "#aaffc3",
-          "#e6194B", "#000075", "#3cb44b", "#9A6324",
-          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-          "#469990", "#800000", "#ffe119", "#aaffc3",
-          "#e6194B", "#000075", "#3cb44b", "#9A6324",
-          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-          "#469990", "#800000", "#ffe119", "#aaffc3",
-          "#e6194B", "#000075", "#3cb44b", "#9A6324",
-          "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-          "#469990", "#800000", "#ffe119", "#aaffc3"),
-          name = "County",
-          breaks = agr_counties()) +
-        coord_cartesian(ylim = c(final_min, final_max)) +
-        scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
-        scale_x_discrete(name = 'Year') +
-        xlab("Year") + ylab(paste("Total Emissions (", input$agr_unit, ")", sep="")) +
-        theme(
-          panel.grid.major.x = element_blank(),
-          panel.grid.minor.x = element_blank()
-          ) +
-        geom_col(width = 0.4, aes(x=YEAR, y=as.integer(sum), fill = County))
     })
+    
+    agr_Plot_Stack <- reactive({
+      
+      vals = agr_totalYearlyEmissions()[2]
+      if (!empty(vals)){
+        min_val = min(vals)
+        print(vals)
+        print(min_val)
+        if (min_val > 0) {
+          min_exponent = floor(log10(min_val)-1)
+          print(min_exponent)
+          final_min = round_any(min_val, 10^min_exponent, f = floor)
+        
+          max_val = max(vals)
+          print(max_val)
+          max_exponent = floor(log10(max_val)-1)
+          print(max_exponent)
+          final_max = round_any(max_val, 10^max_exponent, f = ceiling)
+        
+          sequence = (final_max - final_min) / 10
+        }
+      
+        agr_plot_stack <- ggplot(agr_totalCountyEmissions()) +
+          # geom_col(width = 0.4, fill="red") +
+          scale_fill_manual(values = c(
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3",
+            "#e6194B", "#000075", "#3cb44b", "#9A6324",
+            "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+            "#469990", "#800000", "#ffe119", "#aaffc3"),
+            name = "County",
+            breaks = agr_counties()) +
+          coord_cartesian(ylim = c(final_min, final_max)) +
+          scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
+          scale_x_discrete(name = 'Year') +
+          xlab("Year") + ylab(paste("Total Emissions (", input$agr_unit, ")", sep="")) +
+          theme(
+            panel.grid.major.x = element_blank(),
+            panel.grid.minor.x = element_blank()
+          ) +
+          geom_col(width = 0.4, aes(x=YEAR, y=as.integer(sum), fill = County))
+      } else {
+        # Before it would display an error on the UI.  This makes it so it displays 
+        # a grey box where the plot should be.
+        agr_plot_stack <- ggplot()
+      }
+    })
+    
 
     output$agr_Plot <- renderPlot({
-        print(agr_gflPlot())
+        print(agr_Plot())
+    })
+    
+    output$agr_Plot_Stack <- renderPlot({
+      print(agr_Plot_Stack())
     })
 }
 
