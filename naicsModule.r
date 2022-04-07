@@ -79,8 +79,8 @@ naicsUI <- function(id){
                             # Display stacked plot w/ selectable axes
                             fluidRow(
                                 column(width=2,
-                                       selectInput(ns("xAxis"), "X Axis", xAxes, selected = "County"), style="z-index:1002;", 
-                                       selectInput(ns("colorAxis"), "Color Axis", colorAxes, selected = "Year"), style="z-index:1002;"
+                                       selectInput(ns("xAxis"), "X Axis", xAxes, selected = "NAICS"), style="z-index:1002;", 
+                                       selectInput(ns("colorAxis"), "Color Axis", colorAxes, selected = "County"), style="z-index:1002;"
                                 ),
                                 column(width=10, plotOutput(ns("Plot_Selectable_Axes")))
                             )
