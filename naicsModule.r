@@ -283,24 +283,17 @@ naicsServer <- function(id) {
         
         # Generate Basic Plot
         Plot <- reactive({
-            #TODO: Replace with helper function
             vals = totalYearlyEmissions()[2]
-            
             if (!empty(vals)) {
-                min_val = min(vals)
-                min_exponent = floor(log10(min_val)-1)
-                final_min = round_any(min_val, 10^min_exponent, f = floor)
-            
-                max_val = max(vals)
-                max_exponent = floor(log10(max_val)-1)
-                final_max = round_any(max_val, 10^max_exponent, f = ceiling)
-            
-                sequence = (final_max - final_min) / 10
+                result = calculateSequenceHelper(vals)
+                min = result$min
+                max = result$max
+                sequence = result$sequence
             
                 plot <- ggplot(totalYearlyEmissions(), aes(x=YEAR, y=as.integer(sum))) +
                         geom_col(width = 0.4, fill="red") +
-                        coord_cartesian(ylim = c(final_min, final_max)) +
-                        scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) + 
+                        coord_cartesian(ylim = c(min, max)) +
+                        scale_y_continuous(breaks = seq(min, max, by = sequence)) + 
                         scale_x_discrete(name = 'Year') +
                         xlab("Year") + ylab(paste("Total Emissions (", input$unit, ")", sep="")) + 
                         theme(
@@ -316,20 +309,12 @@ naicsServer <- function(id) {
         
         # Generate Stacked Plot
         Plot_Stack <- reactive({
-            #TODO: Replace with helper function
             vals = totalYearlyEmissions()[2]
             if (!empty(vals)) {
-                min_val = min(vals)
-                if (min_val > 0) {
-                    min_exponent = floor(log10(min_val)-1)
-                    final_min = round_any(min_val, 10^min_exponent, f = floor)
-              
-                    max_val = max(vals)
-                    max_exponent = floor(log10(max_val)-1)
-                    final_max = round_any(max_val, 10^max_exponent, f = ceiling)
-              
-                    sequence = (final_max - final_min) / 10
-                }
+                result = calculateSequenceHelper(vals)
+                min = result$min
+                max = result$max
+                sequence = result$sequence
             
                 plot_stack <- ggplot(totalCountyEmissions()) +
                     scale_fill_manual(values = c( # NOTE: These values repeat and should be replaced in the future
@@ -359,8 +344,8 @@ naicsServer <- function(id) {
                                       "#469990", "#800000", "#ffe119", "#aaffc3"),
                                       name = "County",
                                       breaks = counties()) +
-                  coord_cartesian(ylim = c(final_min, final_max)) +
-                  scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
+                  coord_cartesian(ylim = c(min, max)) +
+                  scale_y_continuous(breaks = seq(min, max, by = sequence)) +
                   scale_x_discrete(name = 'Year') +
                   xlab("Year") + ylab(paste("Total Emissions (", input$unit, ")", sep="")) +
                   theme(
@@ -377,83 +362,76 @@ naicsServer <- function(id) {
         
         # Generate Stacked Plot with Selectable Axes
         Plot_Selectable_Axes <- reactive({
-          #TODO: Replace with helper function
-          vals = totalYearlyEmissions()[2]
-          if (!empty(vals)) {
-            min_val = min(vals)
-            if (min_val > 0) {
-              min_exponent = floor(log10(min_val)-1)
-              final_min = round_any(min_val, 10^min_exponent, f = floor)
-              
-              max_val = max(vals)
-              max_exponent = floor(log10(max_val)-1)
-              final_max = round_any(max_val, 10^max_exponent, f = ceiling)
-              
-              sequence = (final_max - final_min) / 10
-            }
+            vals = totalYearlyEmissions()[2]
+            if (!empty(vals)) {
+                result = calculateSequenceHelper(vals)
+                min = result$min
+                max = result$max
+                sequence = result$sequence
             
-            plot_stack <- ggplot(totalSelectableEmissions(), aes(x=xAxis, y=as.integer(sum), fill = colorAxis)) +
-              scale_fill_manual(values = c( # NOTE: These values repeat and should be replaced in the future
-                "#e6194B", "#000075", "#3cb44b", "#9A6324",
-                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-                "#469990", "#800000", "#ffe119", "#aaffc3",
-                "#e6194B", "#000075", "#3cb44b", "#9A6324",
-                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-                "#469990", "#800000", "#ffe119", "#aaffc3",
-                "#e6194B", "#000075", "#3cb44b", "#9A6324",
-                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-                "#469990", "#800000", "#ffe119", "#aaffc3",
-                "#e6194B", "#000075", "#3cb44b", "#9A6324",
-                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-                "#469990", "#800000", "#ffe119", "#aaffc3",
-                "#e6194B", "#000075", "#3cb44b", "#9A6324",
-                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-                "#469990", "#800000", "#ffe119", "#aaffc3",
-                "#e6194B", "#000075", "#3cb44b", "#9A6324",
-                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-                "#469990", "#800000", "#ffe119", "#aaffc3",
-                "#e6194B", "#000075", "#3cb44b", "#9A6324",
-                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-                "#469990", "#800000", "#ffe119", "#aaffc3",
-                "#e6194B", "#000075", "#3cb44b", "#9A6324",
-                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
-                "#469990", "#800000", "#ffe119", "#aaffc3"),
-                name = "County",
-                breaks = counties()) +
-              coord_cartesian(ylim = c(final_min, final_max)) +
-              scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
-              scale_x_discrete(name = 'Year') +
-              xlab("Year") + ylab(paste("Total Emissions (", input$unit, ")", sep="")) +
-              theme(
-                panel.grid.major.x = element_blank(),
-                panel.grid.minor.x = element_blank()
-              ) +
-              geom_col(width = 0.4, aes(x=xAxis, y=as.integer(sum), fill = colorAxis))
-          } else {
-            # Before it would display an error on the UI.  This makes it so it displays 
-            # a grey box where the plot should be.
-            Plot_Selectable_Axes <- ggplot()
-          }
+                plot_stack <- ggplot(totalSelectableEmissions(), aes(x=xAxis, y=as.integer(sum), fill = colorAxis)) +
+                  scale_fill_manual(values = c( # NOTE: These values repeat and should be replaced in the future
+                    "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                    "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                    "#469990", "#800000", "#ffe119", "#aaffc3",
+                    "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                    "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                    "#469990", "#800000", "#ffe119", "#aaffc3",
+                    "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                    "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                    "#469990", "#800000", "#ffe119", "#aaffc3",
+                    "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                    "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                    "#469990", "#800000", "#ffe119", "#aaffc3",
+                    "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                    "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                    "#469990", "#800000", "#ffe119", "#aaffc3",
+                    "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                    "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                    "#469990", "#800000", "#ffe119", "#aaffc3",
+                    "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                    "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                    "#469990", "#800000", "#ffe119", "#aaffc3",
+                    "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                    "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                    "#469990", "#800000", "#ffe119", "#aaffc3"),
+                    name = "County",
+                    breaks = counties()) +
+                  coord_cartesian(ylim = c(min, max)) +
+                  scale_y_continuous(breaks = seq(min, max, by = sequence)) +
+                  scale_x_discrete(name = 'Year') +
+                  xlab("Year") + ylab(paste("Total Emissions (", input$unit, ")", sep="")) +
+                  theme(
+                    panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank()
+                  ) +
+                  geom_col(width = 0.4, aes(x=xAxis, y=as.integer(sum), fill = colorAxis))
+            } else {
+                # Before it would display an error on the UI.  This makes it so it displays 
+                # a grey box where the plot should be.
+                Plot_Selectable_Axes <- ggplot()
+            }
         })
         
-        # TODO: create helper function
-        # calculateSequenceHelper(vals) <- reactive({
-        #     min_val = min(vals)
-        #     final_min = 0
-        #     final_max = 0
-        #     sequence = 0
-        #     if (min_val > 0) {
-        #         min_exponent = floor(log10(min_val)-1)
-        #         final_min = round_any(min_val, 10^min_exponent, f = floor)
-        #     
-        #         max_val = max(vals)
-        #         max_exponent = floor(log10(max_val)-1)
-        #         final_max = round_any(max_val, 10^max_exponent, f = ceiling)
-        #     
-        #         sequence = (final_max - final_min) / 10
-        #     }
-        #     return(final_min, final_max,)
-        # })
+        #Helper function to determine the plot sequence
+        calculateSequenceHelper<- function(vals){
+            min_val = min(vals)
+            final_min = 0
+            final_max = 0
+            sequence = 0
+            if (min_val > 0) {
+                min_exponent = floor(log10(min_val)-1)
+                final_min = round_any(min_val, 10^min_exponent, f = floor)
+
+                max_val = max(vals)
+                max_exponent = floor(log10(max_val)-1)
+                final_max = round_any(max_val, 10^max_exponent, f = ceiling)
+
+                sequence = (final_max - final_min) / 10
+            }
+            return_list <- list("min" = final_min, "max" = final_max, "sequence" = sequence)
+            return(return_list)
+        }
         
         # Render the plot and display it on the UI
         output$Plot <- renderPlot({
