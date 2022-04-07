@@ -15,6 +15,8 @@ library(ggplot2)
 library(plyr)
 library(dplyr)
 library(jsonlite)
+library(stringr)
+#source("graph.r")
 
 
 my_secrets <- function() {
@@ -36,6 +38,8 @@ con <- dbConnect(RPostgres::Postgres(),dbname = 'postgres',
                  password = toString(secrets["password"]))
 
 datasets <- list("1-digit", "2-digit", "3-digit", "4-digit")
+xAxes <- list("County", "Year", "NAICS")
+colorAxes <- list("None", "NACIS", "County", "Year")
 gfl_1dig <- dbReadTable(con, 'gf1_1dig')
 gfl_2dig <- dbReadTable(con, 'gf1_2dig')
 gfl_3dig <- dbReadTable(con, 'gf1_3dig')
@@ -90,8 +94,8 @@ ui <- fluidPage(
                 #Inputs to select which data set is displays, download buttons for plot and data, and a description of the sector
                 
                 fluidRow(
-                    column(width=3, selectInput("ind_dataset", "NAICS Code Length", datasets, selected = "1-digit", width = "200px"), 
-                           selectInput("ind_unit", "Unit", units, selected = "MMbtu", width = "200px"),
+                    column(width=3, selectInput("ind_dataset", "NAICS Code Length", datasets, selected = "1-digit"), 
+
                            downloadButton("ind_downloadData", "Download Data"), 
                            downloadButton("ind_downloadVis", "Download Plot"),
                            style = "border-right: 2px solid #F0F0F0;"),
@@ -147,6 +151,8 @@ ui <- fluidPage(
                      fluidRow(
                        column(width=3, selectInput("agr_dataset", "NAICS Code Length", datasets, selected = "1-digit"),
                               selectInput("agr_unit", "Unit", units, selected = "MMbtu", width = "200px"),
+                              selectInput("agr_xAxis", "X Axis", xAxes, selected = "County"), 
+                              selectInput("agr_colorAxis", "Color Axis", colorAxes, selected = "Year"), 
                               downloadButton("agr_downloadData", "Download Data"), 
                               downloadButton("agr_downloadVis", "Download Plot"),
                               style = "border-right: 2px solid #F0F0F0;"),
@@ -506,6 +512,22 @@ server <- function(input, output) {
       converted <- x * agr_multiplier()
     }
 
+    agr_xAxis <-  reactive({
+      switch(input$agr_xAxis,
+            "County" = "County",
+            "Year" = "YEAR",
+            "NAICS" = "NAICS_CODE",
+             )
+    })
+
+    agr_colorAxis <-  reactive({
+      switch(input$agr_colorAxis,
+            "County" = "County",
+            "Year" = "YEAR",
+            "None" = NULL,
+             )
+    })
+
     agr_refinedDataset <- reactive ({
       agr_datasetInput()[,-1] %>%
         mutate(across(c(5,13), agr_unit_conversion)) %>%
@@ -577,6 +599,23 @@ server <- function(input, output) {
                             Coal, Natural_gas, Coke_and_breeze), na.rm = TRUE, .groups = "drop")
     })
     
+    agr_totalEmissions <- reactive({
+      print(agr_colorAxis())
+      print(agr_xAxis())
+      filtered = input$agr_table_rows_all
+      # filter and group by.
+      # null can be used in the color axis to indicate no color and it will not group by the color axis
+      output = agr_refinedDataset()[filtered, , drop = FALSE]
+      names(output)[3] <- "NAICS_CODE"
+      output = output %>%
+        group_by(eval(parse(text = agr_colorAxis())), eval(parse(text = agr_xAxis())) ) %>% summarize(sum = sum(total, na.rm = TRUE))
+      # the names of the columns cannot be accessed currently. so we have to do this to rename them
+      names(output) = make.names(names(output))
+      names(output)[1] <- "agr_colorAxis"
+      names(output)[2] <- "agr_xAxis"
+      output
+    })
+    
     agr_totalCountyEmissions <- reactive({
       filtered = input$agr_table_rows_all
       agr_refinedDataset()[filtered, , drop = TRUE] %>%
@@ -612,7 +651,7 @@ server <- function(input, output) {
 
         sequence = (final_max - final_min) / 10
         
-        agr_plot <- ggplot(agr_totalYearlyEmissions(), aes(x=YEAR, y=as.integer(sum))) +
+        agr_plot <- ggplot(agr_totalYearlyEmissions(), aes(x=agr_xAxis, y=sum, fill=agr_colorAxis)) +
           geom_col(width = 0.4, fill="red") +
           coord_cartesian(ylim = c(final_min, final_max)) +
           scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
@@ -688,7 +727,7 @@ server <- function(input, output) {
             panel.grid.major.x = element_blank(),
             panel.grid.minor.x = element_blank()
           ) +
-          geom_col(width = 0.4, aes(x=YEAR, y=as.integer(sum), fill = County))
+          geom_col(width = 0.4, aes(x=agr_xAxis, y=sum, fill=agr_colorAxis))
       } else {
         # Before it would display an error on the UI.  This makes it so it displays 
         # a grey box where the plot should be.
