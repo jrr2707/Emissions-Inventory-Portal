@@ -67,13 +67,13 @@ naicsUI <- function(id){
                             # Display basic plot
                             fluidRow(
                               column(width=12, plotOutput(ns("Plot")))
-                            ),
+                            )
                    ),
                    tabPanel(span("Stacked Plot", title="The Stacked Plot"),
                             # Display stacked plot
                             fluidRow(
                               column(width=12, plotOutput(ns("Plot_Stack")))
-                            ),
+                            )
                    ),
                    tabPanel(span("Selectable Axes", title="The Stacked Plot with Selectable Axes"),
                             # Display stacked plot w/ selectable axes
@@ -83,8 +83,8 @@ naicsUI <- function(id){
                                        selectInput(ns("colorAxis"), "Color Axis", colorAxes, selected = "Year"), style="z-index:1002;"
                                 ),
                                 column(width=10, plotOutput(ns("Plot_Selectable_Axes")))
-                            ),
-                   ),
+                            )
+                   )
         ),
         
         hr(),
@@ -399,8 +399,8 @@ naicsServer <- function(id) {
                     breaks = counties()) +
                   coord_cartesian(ylim = c(min, max)) +
                   scale_y_continuous(breaks = seq(min, max, by = sequence)) +
-                  scale_x_discrete(name = 'Year') +
-                  xlab("Year") + ylab(paste("Total Emissions (", input$unit, ")", sep="")) +
+                  scale_x_discrete(name = xAxis()) +
+                  xlab(xAxis()) + ylab(paste("Total Emissions (", input$unit, ")", sep="")) +
                   theme(
                     panel.grid.major.x = element_blank(),
                     panel.grid.minor.x = element_blank()
