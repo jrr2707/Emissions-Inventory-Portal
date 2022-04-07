@@ -508,7 +508,7 @@ server <- function(input, output) {
       
     })
     
-    agr_unit_conversion <- function(x) {
+    unit_conversion <- function(x) {
       converted <- x * agr_multiplier()
     }
 
@@ -530,7 +530,7 @@ server <- function(input, output) {
 
     agr_refinedDataset <- reactive ({
       agr_datasetInput()[,-1] %>%
-        mutate(across(c(5,13), agr_unit_conversion)) %>%
+        mutate(across(c(5,13), unit_conversion)) %>%
         mutate(across(where(is.numeric), round, digits=2)) %>%
         mutate(across(.cols = 1:2, as.factor)) %>%
         filter_(agr_naicsCode())

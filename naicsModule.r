@@ -17,12 +17,17 @@ con <- dbConnect(RPostgres::Postgres(),dbname = 'postgres',
                  user = toString(secrets["username"]),
                  password = toString(secrets["password"]))
 
-# Get the data sets from dataingest.r
 datasets <- list("1-digit", "2-digit", "3-digit", "4-digit")
+xAxes <- list("County", "Year", "NAICS")
+colorAxes <- list("None", "NACIS", "County", "Year")
+
+# Get the data sets from dataingest.r
 gfl_1dig <- dbReadTable(con, 'gf1_1dig')
 gfl_2dig <- dbReadTable(con, 'gf1_2dig')
 gfl_3dig <- dbReadTable(con, 'gf1_3dig')
 gfl_4dig <- dbReadTable(con, 'gf1_4dig')
+
+
 
 # Unit options for NAICS plots
 # NOTE: Half and Double are placeholder values that should be replaced
@@ -35,8 +40,9 @@ naicsUI <- function(id){
   
     tagList(
         fluidRow(
-            column(width=3, selectInput(ns("dataset"), "NAICS Code Length", datasets, selected = "1-digit", width = "200px"), 
-                   selectInput(ns("unit"), "Unit", units, selected = "MMbtu", width = "200px"),
+            # NOTE: The z-index styling with all select inputs is to prevent the dropdown menu from being hidden behind other UI elements
+            column(width=3, selectInput(ns("dataset"), "NAICS Code Length", datasets, selected = "1-digit", width = "200px"), style="z-index:1002;", 
+                   selectInput(ns("unit"), "Unit", units, selected = "MMbtu", width = "200px"), style="z-index:1002;",
                    downloadButton(ns("downloadData"), "Download Data"),
                    downloadButton(ns("downloadPlot"), "Download Plot"),
                    style = "border-right: 2px solid #F0F0F0;"
@@ -67,6 +73,16 @@ naicsUI <- function(id){
                             # Display stacked plot
                             fluidRow(
                               column(width=12, plotOutput(ns("Plot_Stack")))
+                            ),
+                   ),
+                   tabPanel(span("Selectable Axes", title="The Stacked Plot with Selectable Axes"),
+                            # Display stacked plot w/ selectable axes
+                            fluidRow(
+                                column(width=2,
+                                       selectInput(ns("xAxis"), "X Axis", xAxes, selected = "County"), style="z-index:1002;", 
+                                       selectInput(ns("colorAxis"), "Color Axis", colorAxes, selected = "Year"), style="z-index:1002;"
+                                ),
+                                column(width=10, plotOutput(ns("Plot_Selectable_Axes")))
                             ),
                    ),
         ),
@@ -144,6 +160,43 @@ naicsServer <- function(id) {
                        "NAICS1dig > 1")
             }
         })
+        
+        # The following snippet is used for the Selectable Axes ################
+        
+        # Determine what value to assign to the x axis
+        xAxis <- reactive({
+            switch(input$xAxis,
+                   "County" = "County",
+                   "Year" = "YEAR",
+                   "NAICS" = "NAICS_CODE",
+            )
+        })
+        
+        # Determine what value to assign to the color axis
+        colorAxis <- reactive({
+            switch(input$colorAxis,
+                   "County" = "County",
+                   "Year" = "YEAR",
+                   "None" = NULL,
+            )
+        })
+        
+        totalSelectableEmissions <- reactive({
+            filtered = input$table_rows_all
+            # filter and group by.
+            # null can be used in the color axis to indicate no color and it will not group by the color axis
+            output = refinedDataset()[filtered, , drop = FALSE]
+            names(output)[3] <- "NAICS_CODE"
+            output = output %>%
+              group_by(eval(parse(text = colorAxis())), eval(parse(text = xAxis())) ) %>% summarize(sum = sum(total, na.rm = TRUE))
+            # the names of the columns cannot be accessed currently. so we have to do this to rename them
+            names(output) = make.names(names(output))
+            names(output)[1] <- "colorAxis"
+            names(output)[2] <- "xAxis"
+            output
+        })
+        
+        ########################################################################
         
         
         # Refine the dataset to do any unit conversion and rounding to the second decimal place, as well as turning year and county rows into factors
@@ -322,6 +375,67 @@ naicsServer <- function(id) {
             }
         })
         
+        # Generate Stacked Plot with Selectable Axes
+        Plot_Selectable_Axes <- reactive({
+          #TODO: Replace with helper function
+          vals = totalYearlyEmissions()[2]
+          if (!empty(vals)) {
+            min_val = min(vals)
+            if (min_val > 0) {
+              min_exponent = floor(log10(min_val)-1)
+              final_min = round_any(min_val, 10^min_exponent, f = floor)
+              
+              max_val = max(vals)
+              max_exponent = floor(log10(max_val)-1)
+              final_max = round_any(max_val, 10^max_exponent, f = ceiling)
+              
+              sequence = (final_max - final_min) / 10
+            }
+            
+            plot_stack <- ggplot(totalSelectableEmissions(), aes(x=xAxis, y=as.integer(sum), fill = colorAxis)) +
+              scale_fill_manual(values = c( # NOTE: These values repeat and should be replaced in the future
+                "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                "#469990", "#800000", "#ffe119", "#aaffc3",
+                "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                "#469990", "#800000", "#ffe119", "#aaffc3",
+                "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                "#469990", "#800000", "#ffe119", "#aaffc3",
+                "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                "#469990", "#800000", "#ffe119", "#aaffc3",
+                "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                "#469990", "#800000", "#ffe119", "#aaffc3",
+                "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                "#469990", "#800000", "#ffe119", "#aaffc3",
+                "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                "#469990", "#800000", "#ffe119", "#aaffc3",
+                "#e6194B", "#000075", "#3cb44b", "#9A6324",
+                "#4363d8", "#f58231", "#43d4f4", "#f032e6",
+                "#469990", "#800000", "#ffe119", "#aaffc3"),
+                name = "County",
+                breaks = counties()) +
+              coord_cartesian(ylim = c(final_min, final_max)) +
+              scale_y_continuous(breaks = seq(final_min, final_max, by = sequence)) +
+              scale_x_discrete(name = 'Year') +
+              xlab("Year") + ylab(paste("Total Emissions (", input$unit, ")", sep="")) +
+              theme(
+                panel.grid.major.x = element_blank(),
+                panel.grid.minor.x = element_blank()
+              ) +
+              geom_col(width = 0.4, aes(x=xAxis, y=as.integer(sum), fill = colorAxis))
+          } else {
+            # Before it would display an error on the UI.  This makes it so it displays 
+            # a grey box where the plot should be.
+            Plot_Selectable_Axes <- ggplot()
+          }
+        })
+        
         # TODO: create helper function
         # calculateSequenceHelper(vals) <- reactive({
         #     min_val = min(vals)
@@ -349,6 +463,11 @@ naicsServer <- function(id) {
         # Render the stacked plot and display it on the UI
         output$Plot_Stack <- renderPlot({
             print(Plot_Stack())
+        })
+        
+        # Render the stacked plot with selectable axes and display it on the UI
+        output$Plot_Selectable_Axes <- renderPlot({
+            print(Plot_Selectable_Axes())
         })
       
     })

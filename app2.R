@@ -7,6 +7,7 @@ library(ggplot2)
 library(plyr)
 library(dplyr)
 library(jsonlite)
+library(stringr)
 
 source("homeModule.r")
 source("aboutModule.r")
