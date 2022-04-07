@@ -1,8 +1,8 @@
-#Module for Home Page
+# Module for Home Page
 
-#UI
+# UI
 homeUI <- function(id){
-    #Used so that we don't need to create unique ids for each UI element
+    # Create a namespace so that we don't need to create unique ids for each UI element
     ns <- NS(id)  
   
     tagList(
@@ -36,10 +36,4 @@ homeUI <- function(id){
         )
     )
 }
-
-# homeServer <- function(id) {
-#   moduleServer(id, function(input, output, session){
-#     print("HOME")
-#   })
-# }
 
